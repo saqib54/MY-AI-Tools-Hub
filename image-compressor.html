@@ -274,7 +274,7 @@ async function compressImage(file) {
         if (!blob) { reject(new Error('Failed')); return; }
         const ext = { 'image/png': 'png', 'image/webp': 'webp', 'image/jpeg': 'jpg' }[blob.type] || 'jpg';
         const outName = file.name.replace(/\.[^.]+$/, '') + '-compressed.' + ext;
-        const thumbData = Common.createThumbnail(canvas, 220);
+        const thumbData = Common.createThumbnail(canvas, 800);
         resolve({ blob, url: URL.createObjectURL(blob), name: file.name, outName, origSize: file.size, thumbData });
       }, outType, quality);
     };

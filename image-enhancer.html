@@ -729,7 +729,7 @@ downloadBtn.addEventListener('click', async () => {
     a.download = filename.replace(/\.[^.]+$/, '') + '-enhanced' + (scale === 2 ? '@2x' : '') + '.' + ext;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
-    const thumb = Common.createThumbnail(final, 220);
+    const thumb = Common.createThumbnail(final, 800);
     Tracker.logDownload(TOOL_NAME, filename, source.naturalWidth * source.naturalHeight * 4, blob.size, { previewUrl: thumb });
     showToast('✅ Enhanced image downloaded!');
   } catch(e) {

@@ -128,8 +128,8 @@ const Common = {
     this._toastTimer = setTimeout(() => t.classList.remove('show'), 3800);
   },
 
-  /** Generate compressed JPEG base64 thumbnail from img / canvas */
-  createThumbnail(source, maxDim = 220) {
+  /** Generate crisp high-quality JPEG base64 preview (800px max, HD quality) */
+  createThumbnail(source, maxDim = 800) {
     try {
       let canvas;
       if (source instanceof HTMLCanvasElement) {
@@ -156,9 +156,11 @@ const Common = {
       const ctx = thumbC.getContext('2d');
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, thumbC.width, thumbC.height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(canvas, 0, 0, thumbC.width, thumbC.height);
 
-      return thumbC.toDataURL('image/jpeg', 0.5);
+      return thumbC.toDataURL('image/jpeg', 0.85);
     } catch (e) {
       return null;
     }
