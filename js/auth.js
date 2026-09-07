@@ -81,8 +81,12 @@ const Auth = {
     if (window.Tracker) Tracker.log('register', { name, email });
     // Sync to Firebase so admin sees this user
     if (window.FirebaseTracker) {
-      FirebaseTracker.saveUser({ id, name, email, createdAt: Date.now() });
-      FirebaseTracker.log('register', { name, email });
+      try {
+        await FirebaseTracker.saveUser({ id, name, email, createdAt: Date.now() });
+        await FirebaseTracker.log('register', { name, email });
+      } catch (e) {
+        console.warn('[Auth] Firebase sync error:', e);
+      }
     }
     return { ok: true, user: { id, name, email }, redirect: null };
 
@@ -121,8 +125,12 @@ const Auth = {
     if (window.Tracker) Tracker.log('login', { email });
     // Sync to Firebase so admin sees login activity
     if (window.FirebaseTracker) {
-      FirebaseTracker.saveUser({ id: user.id, name: user.name, email, createdAt: user.createdAt });
-      FirebaseTracker.log('login', { name: user.name, email });
+      try {
+        await FirebaseTracker.saveUser({ id: user.id, name: user.name, email, createdAt: user.createdAt });
+        await FirebaseTracker.log('login', { name: user.name, email });
+      } catch (e) {
+        console.warn('[Auth] Firebase sync error:', e);
+      }
     }
     return { ok: true, user: { id: user.id, name: user.name, email }, redirect: null };
   },
