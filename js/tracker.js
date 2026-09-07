@@ -7,12 +7,11 @@
 const TRACK_KEY = '_th_evts';   // same as KEY_LOGS in admin-view.html
 const MAX_LOGS  = 3000;
 
-// Dynamic auto-loader for firebase-tracker.js ES module
-if (typeof window !== 'undefined' && !document.querySelector('script[data-fb-tracker]')) {
+// Dynamic auto-loader for supabase-tracker.js
+if (typeof window !== 'undefined' && !document.querySelector('script[data-sb-tracker]')) {
   const script = document.createElement('script');
-  script.type = 'module';
-  script.dataset.fbTracker = '1';
-  script.src = 'js/firebase-tracker.js';
+  script.dataset.sbTracker = '1';
+  script.src = 'js/supabase-tracker.js';
   document.head.appendChild(script);
 }
 
@@ -47,9 +46,9 @@ const Tracker = {
 
       localStorage.setItem(TRACK_KEY, JSON.stringify(logs));
 
-      // ── Also sync to Firebase Cloud ─────────────────────
-      if (window.FirebaseTracker && typeof window.FirebaseTracker.log === 'function') {
-        window.FirebaseTracker.log(event, data);
+      // ── Sync to Supabase Cloud (Non-blocking) ────────────
+      if (window.SupabaseTracker && typeof window.SupabaseTracker.log === 'function') {
+        window.SupabaseTracker.log(event, data);
       }
     } catch (e) {
       // Silent fail — never break the page

@@ -149,35 +149,8 @@
 
 <div id="toast"></div>
 
-<!-- Firebase SDK (ES Module) -->
-<script type="module">
-import { initializeApp }    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import {
-  getFirestore, collection, addDoc, getDocs,
-  query, where, orderBy, limit, serverTimestamp,
-  Timestamp, setDoc, doc
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-
-// ── Firebase Config ──────────────────────────────────────
-const firebaseConfig = {
-  apiKey:            "AIzaSyAZJ5_djd6D4zikxEHHbZdX9DvS10lW0PU",
-  authDomain:        "my-brand-b9124.firebaseapp.com",
-  projectId:         "my-brand-b9124",
-  storageBucket:     "my-brand-b9124.firebasestorage.app",
-  messagingSenderId: "687002771469",
-  appId:             "1:687002771469:web:73c18b0d41b0efe07bf544",
-};
-const _app = initializeApp(firebaseConfig);
-const db   = getFirestore(_app);
-
-window._fbDB = db;
-window._fbImports = { collection, addDoc, getDocs, query, where, orderBy,
-                      limit, serverTimestamp, Timestamp, setDoc, doc };
-window._fbReady = true;
-
-// Trigger refresh if dashboard already open
-if (window._dashboardOpen) window.refresh();
-</script>
+<!-- Supabase Tracker Script -->
+<script src="js/supabase-tracker.js"></script>
 
 <script>
 // ═══════════════════════════════════════════════
@@ -229,7 +202,7 @@ function showDashboard() {
   document.getElementById('app').hidden  = false;
   document.getElementById('nav-name').textContent = OWNER_NAME;
   document.getElementById('dash-sub').textContent =
-    'Welcome, ' + OWNER_NAME + ' · ☁️ Loading cloud data…';
+    'Welcome, ' + OWNER_NAME + ' · ⚡ Loading Supabase cloud data…';
   refresh();
 }
 
@@ -243,42 +216,25 @@ function signOut() {
 }
 
 // ══════════════════════════════════════════════
-//  FIREBASE DATA FETCH
+//  SUPABASE DATA FETCH
 // ══════════════════════════════════════════════
 async function fetchCloudData() {
-  if (!window._fbReady || !window._fbDB) return;
-
-  const { collection, getDocs, query, where, orderBy, limit, Timestamp } = window._fbImports;
-  const db = window._fbDB;
+  if (!window.SupabaseTracker) return;
 
   try {
-    // ── Events: last 24 hours ─────────────────────
-    const since = Timestamp.fromMillis(Date.now() - 24 * 3600 * 1000);
-    const eQ = query(
-      collection(db, 'toolhub_events'),
-      where('t', '>=', since),
-      orderBy('t', 'desc'),
-      limit(2000)
-    );
-    const eSnap = await getDocs(eQ);
-    _cloudLogs = eSnap.docs.map(d => ({
-      _id: d.id,
-      ...d.data(),
-      t: d.data().t?.toMillis?.() ?? Date.now()
-    }));
+    const [events, users] = await Promise.all([
+      SupabaseTracker.getRecentEvents(24),
+      SupabaseTracker.getAllUsers(),
+    ]);
 
-    // ── Users: all ────────────────────────────────
-    const uSnap = await getDocs(collection(db, 'toolhub_users'));
-    _cloudUsers = uSnap.docs.map(d => ({
-      ...d.data(),
-      createdAt: d.data().createdAt?.toMillis?.() ?? null
-    }));
+    _cloudLogs  = events || [];
+    _cloudUsers = users  || [];
 
     document.getElementById('dash-sub').textContent =
-      'Welcome, ' + OWNER_NAME + ' · ☁️ Cloud data · Last 24 hrs · Updated ' + new Date().toLocaleTimeString();
+      'Welcome, ' + OWNER_NAME + ' · ⚡ Supabase Cloud · Last 24 hrs · Updated ' + new Date().toLocaleTimeString();
 
   } catch (err) {
-    console.warn('Firestore fetch error:', err);
+    console.warn('Supabase fetch error:', err);
     document.getElementById('dash-sub').textContent =
       'Welcome, ' + OWNER_NAME + ' · ⚠️ Cloud error — showing local data only';
   }

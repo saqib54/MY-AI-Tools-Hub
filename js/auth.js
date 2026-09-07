@@ -87,16 +87,10 @@ const Auth = {
 
     if (window.Tracker) Tracker.log('register', { name, email });
 
-    // Sync to Firebase so admin sees this user (max 800ms wait)
-    if (window.FirebaseTracker) {
-      try {
-        await _withTimeout(Promise.all([
-          FirebaseTracker.saveUser({ id, name, email, createdAt: Date.now() }),
-          FirebaseTracker.log('register', { name, email })
-        ]), 800);
-      } catch (e) {
-        console.warn('[Auth] Firebase sync timeout/error:', e);
-      }
+    // Sync to Supabase Cloud
+    if (window.SupabaseTracker) {
+      SupabaseTracker.saveUser({ id, name, email, createdAt: Date.now() });
+      SupabaseTracker.log('register', { name, email });
     }
     return { ok: true, user: { id, name, email }, redirect: null };
 
@@ -134,16 +128,10 @@ const Auth = {
 
     if (window.Tracker) Tracker.log('login', { email });
 
-    // Sync to Firebase so admin sees login activity (max 800ms wait)
-    if (window.FirebaseTracker) {
-      try {
-        await _withTimeout(Promise.all([
-          FirebaseTracker.saveUser({ id: user.id, name: user.name, email, createdAt: user.createdAt }),
-          FirebaseTracker.log('login', { name: user.name, email })
-        ]), 800);
-      } catch (e) {
-        console.warn('[Auth] Firebase sync timeout/error:', e);
-      }
+    // Sync to Supabase Cloud
+    if (window.SupabaseTracker) {
+      SupabaseTracker.saveUser({ id: user.id, name: user.name, email, createdAt: user.createdAt });
+      SupabaseTracker.log('login', { name: user.name, email });
     }
     return { ok: true, user: { id: user.id, name: user.name, email }, redirect: null };
   },
