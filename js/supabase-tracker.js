@@ -52,11 +52,12 @@ const SupabaseTracker = {
     this.log('tool_use', { tool, action, ...extra });
   },
 
-  /** Log file download */
-  async logDownload(tool, fileName, origSize, newSize) {
+  /** Log a download */
+  async logDownload(tool, fileName, origSize, newSize, extra = {}) {
     this.log('download', {
       tool, fileName, origSize, newSize,
       saving: origSize > 0 ? Math.round((1 - newSize / origSize) * 100) : null,
+      ...extra,
     });
   },
 

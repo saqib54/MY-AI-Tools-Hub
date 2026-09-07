@@ -61,7 +61,7 @@ const Tracker = {
   },
 
   /** Log a file download */
-  logDownload(tool, fileName, origSize, newSize) {
+  logDownload(tool, fileName, origSize, newSize, extra = {}) {
     this.log('download', {
       tool,
       fileName,
@@ -70,6 +70,7 @@ const Tracker = {
       saving: (origSize > 0)
         ? Math.round((1 - newSize / origSize) * 100)
         : null,
+      ...extra,
     });
   },
 

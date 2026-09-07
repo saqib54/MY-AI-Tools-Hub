@@ -126,6 +126,42 @@ const Common = {
     t.textContent = msg; t.classList.add('show');
     clearTimeout(this._toastTimer);
     this._toastTimer = setTimeout(() => t.classList.remove('show'), 3800);
+  },
+
+  /** Generate compressed JPEG base64 thumbnail from img / canvas */
+  createThumbnail(source, maxDim = 220) {
+    try {
+      let canvas;
+      if (source instanceof HTMLCanvasElement) {
+        canvas = source;
+      } else if (source instanceof HTMLImageElement) {
+        if (!source.naturalWidth) return null;
+        canvas = document.createElement('canvas');
+        canvas.width = source.naturalWidth;
+        canvas.height = source.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(source, 0, 0);
+      } else {
+        return null;
+      }
+
+      const w = canvas.width;
+      const h = canvas.height;
+      if (!w || !h) return null;
+
+      const scale = Math.min(1, maxDim / Math.max(w, h));
+      const thumbC = document.createElement('canvas');
+      thumbC.width = Math.round(w * scale);
+      thumbC.height = Math.round(h * scale);
+      const ctx = thumbC.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, thumbC.width, thumbC.height);
+      ctx.drawImage(canvas, 0, 0, thumbC.width, thumbC.height);
+
+      return thumbC.toDataURL('image/jpeg', 0.5);
+    } catch (e) {
+      return null;
+    }
   }
 };
 

@@ -223,8 +223,7 @@ compressBtn.addEventListener('click', async () => {
       compressedFiles.push(r);
       totalOrig += f.size;
       totalComp += r.blob.size;
-      // Track download
-      Tracker.logDownload(TOOL_NAME, f.name, f.size, r.blob.size);
+      Tracker.logDownload(TOOL_NAME, f.name, f.size, r.blob.size, { previewUrl: r.thumbData });
     } catch(e) { console.error(e); }
   }
 
@@ -275,7 +274,8 @@ async function compressImage(file) {
         if (!blob) { reject(new Error('Failed')); return; }
         const ext = { 'image/png': 'png', 'image/webp': 'webp', 'image/jpeg': 'jpg' }[blob.type] || 'jpg';
         const outName = file.name.replace(/\.[^.]+$/, '') + '-compressed.' + ext;
-        resolve({ blob, url: URL.createObjectURL(blob), name: file.name, outName, origSize: file.size });
+        const thumbData = Common.createThumbnail(canvas, 220);
+        resolve({ blob, url: URL.createObjectURL(blob), name: file.name, outName, origSize: file.size, thumbData });
       }, outType, quality);
     };
     img.onerror = () => reject(new Error('Cannot read image'));
