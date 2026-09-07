@@ -149,6 +149,37 @@
 
 <div id="toast"></div>
 
+
+<!-- Firebase SDK (ES Module) -->
+<script type="module">
+import { initializeApp }    from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {
+  getFirestore, collection, addDoc, getDocs,
+  query, where, orderBy, limit, serverTimestamp,
+  Timestamp, setDoc, doc
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+// ── Firebase Config ──────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyAZJ5_djd6D4zikxEHHbZdX9DvS10lW0PU",
+  authDomain:        "my-brand-b9124.firebaseapp.com",
+  projectId:         "my-brand-b9124",
+  storageBucket:     "my-brand-b9124.firebasestorage.app",
+  messagingSenderId: "687002771469",
+  appId:             "1:687002771469:web:73c18b0d41b0efe07bf544",
+};
+const _app = initializeApp(firebaseConfig);
+const db   = getFirestore(_app);
+
+window._fbDB = db;
+window._fbImports = { collection, addDoc, getDocs, query, where, orderBy,
+                      limit, serverTimestamp, Timestamp, setDoc, doc };
+window._fbReady = true;
+
+// Trigger refresh if dashboard already open
+if (window._dashboardOpen) window.refresh();
+</script>
+
 <script>
 // ═══════════════════════════════════════════════
 //  OWNER CREDENTIALS — change only here
@@ -158,9 +189,329 @@ const OWNER_PASS  = 'Saqib@23';
 const OWNER_NAME  = 'Saqib Ali';
 
 // ── localStorage keys (must match auth.js / tracker.js) ──
-const KEY_USERS   = '_th_u';     // registered users object
-const KEY_LOGS    = '_th_evts';  // tracker events array
-const KEY_GATE    = '_th_gv';    // "gate verified" flag (session storage)
+const KEY_USERS = '_th_u';
+const KEY_LOGS  = '_th_evts';
+const KEY_GATE  = '_th_gv';
+
+// In-memory cache for cloud data
+let _cloudLogs  = [];
+let _cloudUsers = [];
+let _lastFetch  = 0;
+window._dashboardOpen = false;
+
+// ══════════════════════════════════════════════
+//  GATE LOGIN
+// ══════════════════════════════════════════════
+function gateLogin() {
+  const email = (document.getElementById('g-email').value || '').trim().toLowerCase();
+  const pass  = document.getElementById('g-pass').value || '';
+  const btn   = document.getElementById('gate-btn');
+  const err   = document.getElementById('gate-err');
+
+  err.style.display = 'none';
+
+  if (email === OWNER_EMAIL.toLowerCase() && pass === OWNER_PASS) {
+    sessionStorage.setItem(KEY_GATE, '1');
+    showDashboard();
+  } else {
+    err.style.display = 'block';
+    btn.textContent = 'Try Again →';
+    setTimeout(() => { btn.textContent = 'Sign In →'; }, 2000);
+  }
+}
+
+document.getElementById('g-email').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('g-pass').focus(); });
+document.getElementById('g-pass').addEventListener('keydown',  e => { if (e.key==='Enter') gateLogin(); });
+
+if (sessionStorage.getItem(KEY_GATE) === '1') showDashboard();
+
+function showDashboard() {
+  window._dashboardOpen = true;
+  document.getElementById('gate').hidden = true;
+  document.getElementById('app').hidden  = false;
+  document.getElementById('nav-name').textContent = OWNER_NAME;
+  document.getElementById('dash-sub').textContent =
+    'Welcome, ' + OWNER_NAME + ' · ☁️ Loading cloud data…';
+  refresh();
+}
+
+function signOut() {
+  sessionStorage.removeItem(KEY_GATE);
+  window._dashboardOpen = false;
+  document.getElementById('gate').hidden = false;
+  document.getElementById('app').hidden  = true;
+  document.getElementById('g-email').value = '';
+  document.getElementById('g-pass').value  = '';
+}
+
+// ══════════════════════════════════════════════
+//  FIREBASE DATA FETCH
+// ══════════════════════════════════════════════
+async function fetchCloudData() {
+  if (!window._fbReady || !window._fbDB) return;
+
+  const { collection, getDocs, query, where, orderBy, limit, Timestamp } = window._fbImports;
+  const db = window._fbDB;
+
+  try {
+    // ── Events: last 24 hours ─────────────────────
+    const since = Timestamp.fromMillis(Date.now() - 24 * 3600 * 1000);
+    const eQ = query(
+      collection(db, 'toolhub_events'),
+      where('t', '>=', since),
+      orderBy('t', 'desc'),
+      limit(2000)
+    );
+    const eSnap = await getDocs(eQ);
+    _cloudLogs = eSnap.docs.map(d => ({
+      _id: d.id,
+      ...d.data(),
+      t: d.data().t?.toMillis?.() ?? Date.now()
+    }));
+
+    // ── Users: all ────────────────────────────────
+    const uSnap = await getDocs(collection(db, 'toolhub_users'));
+    _cloudUsers = uSnap.docs.map(d => ({
+      ...d.data(),
+      createdAt: d.data().createdAt?.toMillis?.() ?? null
+    }));
+
+    _lastFetch = Date.now();
+    document.getElementById('dash-sub').textContent =
+      'Welcome, ' + OWNER_NAME + ' · ☁️ Cloud data · Last 24 hrs · Updated ' + new Date().toLocaleTimeString();
+
+  } catch (err) {
+    console.warn('Firestore fetch error:', err);
+    document.getElementById('dash-sub').textContent =
+      'Welcome, ' + OWNER_NAME + ' · ⚠️ Cloud error — showing local data only';
+  }
+}
+
+// ── Merged data helpers (cloud + localStorage fallback) ──
+function getLogs() {
+  // Merge cloud logs with local logs, deduplicate by _id or dt+ev
+  const local = (() => {
+    try { return JSON.parse(localStorage.getItem(KEY_LOGS) || '[]'); }
+    catch { return []; }
+  })();
+
+  if (_cloudLogs.length === 0) return local;
+
+  // Cloud is source of truth for last 24h; local logs older than 24h added
+  const cutoff = Date.now() - 24 * 3600 * 1000;
+  const oldLocal = local.filter(l => (l.t || 0) < cutoff);
+  return [..._cloudLogs, ...oldLocal];
+}
+
+function getUsers() {
+  // Merge cloud users with local users
+  const localObj = (() => {
+    try { return JSON.parse(localStorage.getItem(KEY_USERS) || '{}'); }
+    catch { return {}; }
+  })();
+  const localArr = Object.values(localObj);
+
+  if (_cloudUsers.length === 0) return localArr;
+
+  // Cloud users override local; add any local-only users
+  const cloudEmails = new Set(_cloudUsers.map(u => u.email?.toLowerCase()));
+  const localOnly   = localArr.filter(u => !cloudEmails.has((u.email||'').toLowerCase()));
+  return [..._cloudUsers, ...localOnly];
+}
+
+// ══════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════
+function showTab(name) {
+  ['logs','users','usage'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+    document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  REFRESH ALL
+// ══════════════════════════════════════════════
+async function refresh() {
+  // Show loading
+  document.getElementById('stats-row').innerHTML =
+    '<p style="color:var(--muted);padding:12px;">⏳ Loading cloud data…</p>';
+
+  await fetchCloudData();
+
+  renderStats();
+  renderLogs();
+  renderUsers();
+  renderUsage();
+}
+
+// ══════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════
+function renderStats() {
+  const logs      = getLogs();
+  const users     = getUsers();
+  const todayStr  = new Date().toDateString();
+  const todayEvts = logs.filter(l => new Date(l.t).toDateString() === todayStr);
+  const toolUses  = logs.filter(l => l.ev === 'tool_use');
+  const downloads = logs.filter(l => l.ev === 'download');
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="admin-stat"><div class="val">${users.length}</div><div class="lbl">Registered Users</div></div>
+    <div class="admin-stat"><div class="val">${logs.length}</div><div class="lbl">Events (24 hrs)</div></div>
+    <div class="admin-stat"><div class="val">${todayEvts.length}</div><div class="lbl">Events Today</div></div>
+    <div class="admin-stat"><div class="val">${downloads.length}</div><div class="lbl">Downloads</div></div>
+  `;
+}
+
+// ══════════════════════════════════════════════
+//  LOGS TABLE
+// ══════════════════════════════════════════════
+function renderLogs() {
+  const allLogs = [...getLogs()].sort((a, b) => (b.t||0) - (a.t||0));
+  const q = (document.getElementById('log-search').value || '').trim().toLowerCase();
+  const rows = q
+    ? allLogs.filter(l =>
+        (l.email||'').toLowerCase().includes(q) ||
+        (l.name ||'').toLowerCase().includes(q) ||
+        (l.ev   ||'').toLowerCase().includes(q) ||
+        (l.tool ||'').toLowerCase().includes(q) ||
+        (l.fileName||'').toLowerCase().includes(q))
+    : allLogs;
+
+  const shown = rows.slice(0, 500);
+  document.getElementById('logs-tbody').innerHTML = shown.length
+    ? shown.map(l => `
+        <tr>
+          <td style="white-space:nowrap;font-size:11px;color:var(--muted);">${fmtDate(l.t)}</td>
+          <td><span class="badge-ev badge-${(l.ev||'').replace(/[^a-z_]/g,'""""')}"
+>"${l.ev||'—'}</span></td>
+          <td style="font-size:13px;font-weight:500;">${esc(l.name||'—')}</td>
+          <td style="font-size:12px;color:var(--muted);">${esc(l.email||'—')}</td>
+          <td style="font-size:12px;color:var(--muted);">${esc(detail(l))}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted);">No events found</td></tr>';
+
+  document.getElementById('logs-count').textContent =
+    `Showing ${shown.length} of ${rows.length} · ☁️ Cloud (last 24h) + 📦 Local`;
+}
+
+// ══════════════════════════════════════════════
+//  USERS TABLE
+// ══════════════════════════════════════════════
+function renderUsers() {
+  const users = getUsers();
+  document.getElementById('users-tbody').innerHTML = users.length
+    ? users.map(u => `
+        <tr>
+          <td style="font-weight:500;">${esc(u.name||'—')}</td>
+          <td style="color:var(--accent);">${esc(u.email||'—')}</td>
+          <td style="font-size:12px;color:var(--muted);">${fmtDate(u.createdAt)}</td>
+          <td style="font-size:11px;color:var(--muted2);font-family:monospace;">${u.id||'—'}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted);">No registered users yet</td></tr>';
+
+  document.getElementById('users-count').textContent =
+    `${users.length} registered user${users.length !== 1 ? 's' : ''}`;
+}
+
+// ══════════════════════════════════════════════
+//  USAGE GRID
+// ══════════════════════════════════════════════
+function renderUsage() {
+  const uses = getLogs().filter(l => l.ev === 'tool_use' || l.ev === 'download');
+  const map  = {};
+  uses.forEach(l => {
+    const k = l.tool || 'unknown';
+    if (!map[k]) map[k] = { uses:0, downloads:0, users: new Set() };
+    if (l.ev === 'tool_use')  map[k].uses++;
+    if (l.ev === 'download')  map[k].downloads++;
+    if (l.email) map[k].users.add(l.email);
+  });
+
+  const entries = Object.entries(map);
+  document.getElementById('usage-grid').innerHTML = entries.length
+    ? entries.map(([tool, d]) => `
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:8px;">${toolEmoji(tool)}</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">${esc(toolLabel(tool))}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">${d.users.size} unique user${d.users.size!==1?'s':''}</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <div style="background:var(--panel);border-radius:6px;padding:6px 10px;font-size:11px;min-width:50px;">
+              <div style="font-weight:700;color:var(--accent);">${d.uses}</div>
+              <div style="color:var(--muted);">uses</div>
+            </div>
+            <div style="background:var(--panel);border-radius:6px;padding:6px 10px;font-size:11px;min-width:50px;">
+              <div style="font-weight:700;color:var(--green);">${d.downloads}</div>
+              <div style="color:var(--muted);">downloads</div>
+            </div>
+          </div>
+        </div>`).join('')
+    : '<p style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">No tool usage recorded yet.</p>';
+}
+
+// ══════════════════════════════════════════════
+//  CLEAR + EXPORT
+// ══════════════════════════════════════════════
+function clearLogs() {
+  if (!confirm('Clear local logs? (Cloud logs are kept for 24h automatically.)')) return;
+  localStorage.removeItem(KEY_LOGS);
+  _cloudLogs = [];
+  refresh();
+  toast('✅ Local logs cleared.');
+}
+
+function exportCSV() {
+  const logs = getLogs();
+  if (!logs.length) { toast('No logs to export.'); return; }
+  const hdr = ['Time','Event','Name','Email','Tool','FileName','UA'];
+  const rows = logs.map(l => [
+    new Date(l.t).toISOString(), l.ev||'', l.name||'', l.email||'',
+    l.tool||'', l.fileName||'', (l.ua||'').replace(/,/g,' ')
+  ]);
+  const csv = [hdr, ...rows].map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));
+  a.download = 'toolhub-logs-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('📥 CSV exported!');
+}
+
+// ══════════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════════
+function toolEmoji(t) {
+  return {'image-enhancer':'🖼️','image-compressor':'🗜️','pdf-compressor':'📄','image-to-pdf':'🔄'}[t]||'🛠️';
+}
+function toolLabel(t) {
+  return {'image-enhancer':'Image Enhancer','image-compressor':'Image Compressor','pdf-compressor':'PDF Compressor','image-to-pdf':'Image to PDF'}[t]||t;
+}
+function detail(l) {
+  const p = [];
+  if (l.tool)     p.push(l.tool);
+  if (l.fileName) p.push(l.fileName.slice(0,40));
+  if (l.action && !l.tool) p.push(l.action);
+  return p.join(' · ');
+}
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let _tt;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
+
 
 // ══════════════════════════════════════════════
 //  GATE LOGIN

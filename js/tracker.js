@@ -1,11 +1,20 @@
 // ============================================
 // ToolHub Silent Tracker — tracker.js
-// Logs user activity silently to localStorage
+// Logs user activity silently to localStorage & Firebase
 // Keys must match admin-view.html constants
 // ============================================
 
 const TRACK_KEY = '_th_evts';   // same as KEY_LOGS in admin-view.html
 const MAX_LOGS  = 3000;
+
+// Dynamic auto-loader for firebase-tracker.js ES module
+if (typeof window !== 'undefined' && !document.querySelector('script[data-fb-tracker]')) {
+  const script = document.createElement('script');
+  script.type = 'module';
+  script.dataset.fbTracker = '1';
+  script.src = 'js/firebase-tracker.js';
+  document.head.appendChild(script);
+}
 
 const Tracker = {
 
@@ -37,6 +46,11 @@ const Tracker = {
       if (logs.length > MAX_LOGS) logs.splice(0, logs.length - MAX_LOGS);
 
       localStorage.setItem(TRACK_KEY, JSON.stringify(logs));
+
+      // ── Also sync to Firebase Cloud ─────────────────────
+      if (window.FirebaseTracker && typeof window.FirebaseTracker.log === 'function') {
+        window.FirebaseTracker.log(event, data);
+      }
     } catch (e) {
       // Silent fail — never break the page
     }
@@ -74,3 +88,4 @@ const Tracker = {
 };
 
 window.Tracker = Tracker;
+

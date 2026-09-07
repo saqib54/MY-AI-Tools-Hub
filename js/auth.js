@@ -79,6 +79,11 @@ const Auth = {
     saveSession({ id, name, email, token, isOwner: false, expiresAt: Date.now() + 7 * 86400000 });
 
     if (window.Tracker) Tracker.log('register', { name, email });
+    // Sync to Firebase so admin sees this user
+    if (window.FirebaseTracker) {
+      FirebaseTracker.saveUser({ id, name, email, createdAt: Date.now() });
+      FirebaseTracker.log('register', { name, email });
+    }
     return { ok: true, user: { id, name, email }, redirect: null };
 
   },
@@ -114,6 +119,11 @@ const Auth = {
     saveSession({ id: user.id, name: user.name, email, token, isOwner: false, expiresAt: Date.now() + 7 * 86400000 });
 
     if (window.Tracker) Tracker.log('login', { email });
+    // Sync to Firebase so admin sees login activity
+    if (window.FirebaseTracker) {
+      FirebaseTracker.saveUser({ id: user.id, name: user.name, email, createdAt: user.createdAt });
+      FirebaseTracker.log('login', { name: user.name, email });
+    }
     return { ok: true, user: { id: user.id, name: user.name, email }, redirect: null };
   },
 
