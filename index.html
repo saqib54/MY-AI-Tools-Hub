@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToolHub — All-in-One Online Tools</title>
+  <meta name="description" content="Free online tools: Image Enhancer, Image Compressor, PDF Compressor, Image to PDF. Fast, secure, works in your browser.">
+  <link rel="stylesheet" href="style.css">
+  <script src="js/theme.js"></script>
+  <script src="js/tracker.js"></script>
+  <script src="js/auth.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🛠️</div>
+    Tool<span>Hub</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html" class="active">Home</a>
+    <a href="image-enhancer.html">Image Tools</a>
+    <a href="pdf-compressor.html">PDF Tools</a>
+    <a href="#about">About</a>
+  </div>
+  <div class="nav-right" id="nav-right">
+    <button class="btn btn-icon btn-secondary" data-theme-toggle onclick="Theme.toggle()" title="Toggle theme">☀️</button>
+    <div id="nav-auth-area"></div>
+  </div>
+</nav>
+
+<!-- Mobile Hamburger -->
+<button class="nav-hamburger" id="hamburger" aria-label="Menu">
+  <span></span><span></span><span></span>
+</button>
+<div class="nav-drawer" id="nav-drawer">
+  <a href="index.html">🏠 Home</a>
+  <a href="image-enhancer.html">🖼️ Image Enhancer</a>
+  <a href="image-compressor.html">🗜️ Image Compressor</a>
+  <a href="pdf-compressor.html">📄 PDF Compressor</a>
+  <a href="image-to-pdf.html">🔄 Image to PDF</a>
+  <div class="drawer-divider"></div>
+  <div id="drawer-auth"></div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid">
+    <div class="hero-content">
+      <div class="hero-badge">⚡ POWERFUL • FREE • EASY TO USE</div>
+      <h1>All-in-One<br><span>Online Tools</span></h1>
+      <p>Enhance your images, compress file sizes, and work with PDFs — fast, simple, and free. No software required.</p>
+      <div class="hero-features">
+        <div class="hero-feature"><div class="hero-feature-icon">⚡</div>Fast Processing</div>
+        <div class="hero-feature"><div class="hero-feature-icon">🔒</div>100% Secure</div>
+        <div class="hero-feature"><div class="hero-feature-icon">📱</div>Works on All Devices</div>
+      </div>
+      <div class="hero-actions" id="hero-actions">
+        <a href="image-enhancer.html" class="btn btn-primary btn-lg">Start Using Tools →</a>
+        <a href="#tools" class="btn btn-secondary btn-lg">View All Tools</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="tool-showcase">
+        <a href="image-enhancer.html" class="showcase-card">
+          <div class="showcase-card-icon">🖼️</div>
+          <div class="tag tag-blue">IMAGE TOOL</div>
+          <h4>Image Enhancer</h4>
+          <p>AI-powered enhancement with live preview</p>
+        </a>
+        <a href="image-compressor.html" class="showcase-card">
+          <div class="showcase-card-icon">🗜️</div>
+          <div class="tag tag-green">IMAGE TOOL</div>
+          <h4>Image Compressor</h4>
+          <p>Reduce size without losing quality</p>
+        </a>
+        <a href="pdf-compressor.html" class="showcase-card">
+          <div class="showcase-card-icon">📄</div>
+          <div class="tag tag-red">PDF TOOL</div>
+          <h4>PDF Compressor</h4>
+          <p>Shrink PDFs while keeping quality</p>
+        </a>
+        <a href="image-to-pdf.html" class="showcase-card">
+          <div class="showcase-card-icon">🔄</div>
+          <div class="tag tag-purple">CONVERT</div>
+          <h4>Image to PDF</h4>
+          <p>Combine images into one PDF file</p>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS SECTION -->
+<section class="tools-section" id="tools">
+  <div class="section-header">
+    <div class="section-eyebrow">✦ OUR TOOLS</div>
+    <h2>Choose Your Tool</h2>
+    <p>Select a tool below and get started instantly.</p>
+  </div>
+  <div class="tools-grid">
+    <a href="image-enhancer.html" class="tool-card blue">
+      <div class="tool-icon blue">🖼️</div>
+      <h3>Image Enhancer</h3>
+      <p>Improve image quality, sharpen details, and make your photos clearer with smart enhancement.</p>
+      <div class="tool-card-btn blue">Enhance Image →</div>
+      <div class="tool-card-formats">Supports: JPG, PNG, WEBP</div>
+    </a>
+    <a href="image-compressor.html" class="tool-card green">
+      <div class="tool-icon green">🗜️</div>
+      <h3>Image Compressor</h3>
+      <p>Reduce image file size without losing quality. Perfect for web, email, and sharing.</p>
+      <div class="tool-card-btn green">Compress Image →</div>
+      <div class="tool-card-formats">Supports: JPG, PNG, WEBP</div>
+    </a>
+    <a href="pdf-compressor.html" class="tool-card red">
+      <div class="tool-icon red">📄</div>
+      <h3>PDF Compressor</h3>
+      <p>Shrink your PDF file size while maintaining good quality for sharing and uploading.</p>
+      <div class="tool-card-btn red">Compress PDF →</div>
+      <div class="tool-card-formats">Supports: PDF</div>
+    </a>
+    <a href="image-to-pdf.html" class="tool-card purple">
+      <div class="tool-icon purple">🔄</div>
+      <h3>Image to PDF</h3>
+      <p>Convert multiple images to a single PDF. Drag to reorder and convert in seconds.</p>
+      <div class="tool-card-btn purple">Convert Now →</div>
+      <div class="tool-card-formats">Supports: JPG, PNG, WEBP</div>
+    </a>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<div class="features-row">
+  <div class="features-inner">
+    <div class="feature-item">
+      <div class="feature-icon">👍</div>
+      <div><h4>Easy to Use</h4><p>Clean and simple interface</p></div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🔒</div>
+      <div><h4>Your Privacy Matters</h4><p>Files stay in your browser</p></div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🚀</div>
+      <div><h4>Lightning Fast</h4><p>Get results in seconds</p></div>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">⭐</div>
+      <div><h4>Completely Free</h4><p>No hidden charges</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-box">
+    <div>
+      <h2>Ready to get started?</h2>
+      <p>Enhance, compress, and convert your files right now — free and online.</p>
+    </div>
+    <a href="image-enhancer.html" class="btn btn-lg">Start Using Tools →</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer" id="about">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="nav-logo" style="font-size:18px;">
+          <div class="nav-logo-icon" style="width:30px;height:30px;font-size:14px;">🛠️</div>
+          Tool<span>Hub</span>
+        </div>
+        <p>Simple Tools for a Better Digital Life. All processing happens in your browser — your files never leave your device.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Image Tools</h4>
+        <a href="image-enhancer.html">Image Enhancer</a>
+        <a href="image-compressor.html">Image Compressor</a>
+      </div>
+      <div class="footer-links">
+        <h4>PDF Tools</h4>
+        <a href="pdf-compressor.html">PDF Compressor</a>
+        <a href="image-to-pdf.html">Image to PDF</a>
+      </div>
+      <div class="footer-links">
+        <h4>Info</h4>
+        <a href="#about">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 ToolHub. All rights reserved. Made with ❤️ for everyone.</span>
+      <div class="footer-social">
+        <a href="#">🐦</a><a href="#">💼</a><a href="#">▶️</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+// ── Hamburger ──
+const ham = document.getElementById('hamburger');
+const drawer = document.getElementById('nav-drawer');
+ham.addEventListener('click', () => {
+  ham.classList.toggle('open');
+  drawer.classList.toggle('open');
+});
+drawer.querySelectorAll('a').forEach(a => {
+  a.addEventListener('click', () => { ham.classList.remove('open'); drawer.classList.remove('open'); });
+});
+
+// ── Auth State ──
+const user = Auth.getCurrentUser();
+const authArea = document.getElementById('nav-auth-area');
+const drawerAuth = document.getElementById('drawer-auth');
+const heroActions = document.getElementById('hero-actions');
+
+if (user) {
+  const initial = (user.name || user.email)[0].toUpperCase();
+  authArea.innerHTML = `
+    <div class="nav-user-chip">
+      <div class="nav-avatar">${initial}</div>
+      <span style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${user.name}</span>
+    </div>
+    <button class="btn btn-ghost" onclick="Auth.logout();location.reload();" style="font-size:13px;padding:8px 14px;">Logout</button>
+  `;
+  drawerAuth.innerHTML = `
+    <div style="padding:10px 14px;font-size:13px;color:var(--muted);">
+      Logged in as <strong style="color:var(--text);">${user.name}</strong>
+    </div>
+    <button onclick="Auth.logout();location.reload();" 
+      style="color:var(--red);text-align:left;padding:12px 14px;border-radius:10px;background:none;width:100%;border:none;cursor:pointer;font-size:15px;">
+      🚪 Logout
+    </button>
+  `;
+} else {
+  authArea.innerHTML = `
+    <a href="auth.html?view=login" class="btn btn-ghost" style="font-size:13px;padding:8px 14px;">Sign In</a>
+    <a href="auth.html?view=register" class="btn btn-primary" style="font-size:13px;padding:8px 16px;">Get Started →</a>
+  `;
+  drawerAuth.innerHTML = `
+    <a href="auth.html?view=login" style="color:var(--accent);">🔐 Sign In</a>
+    <a href="auth.html?view=register" style="color:var(--green);">✨ Create Account</a>
+  `;
+  // Update CTA if not logged in
+  heroActions.innerHTML = `
+    <a href="auth.html?view=register" class="btn btn-primary btn-lg">Create Free Account →</a>
+    <a href="auth.html?view=login" class="btn btn-secondary btn-lg">Sign In</a>
+  `;
+}
+
+// Smooth scroll
+document.querySelector('a[href="#tools"]')?.addEventListener('click', e => {
+  e.preventDefault();
+  document.getElementById('tools').scrollIntoView({ behavior: 'smooth' });
+});
+</script>
+</body>
+</html>

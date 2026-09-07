@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image to PDF — ToolHub</title>
+  <meta name="description" content="Convert multiple images to a single PDF file online for free.">
+  <link rel="stylesheet" href="style.css">
+  <script src="js/theme.js"></script>
+  <script src="js/tracker.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/limits.js"></script>
+  <script src="js/common.js"></script>
+  <style>
+    .images-list { display: flex; flex-direction: column; gap: 9px; margin-top: 18px; }
+    .img-item { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: grab; transition: all .2s; }
+    .img-item.drag-over { border-color: var(--blue); background: var(--blue-glow); }
+    .img-item.dragging-item { opacity: 0.4; }
+    .drag-handle { color: var(--muted2); cursor: grab; font-size: 18px; flex-shrink: 0; }
+    .img-item img { width: 44px; height: 44px; object-fit: cover; border-radius: 7px; flex-shrink: 0; }
+    .img-item-info { flex: 1; min-width: 0; }
+    .img-item-info strong { font-size: 13px; font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .img-item-info span { font-size: 11px; color: var(--muted); }
+    .img-item-num { width: 24px; height: 24px; border-radius: 5px; background: var(--card); border: 1px solid var(--border); display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--accent); flex-shrink: 0; }
+    .remove-img { background: none; border: none; cursor: pointer; color: var(--muted); width: 28px; height: 28px; border-radius: 5px; display: grid; place-items: center; font-size: 16px; transition: all .2s; flex-shrink: 0; }
+    .remove-img:hover { background: rgba(239,68,68,0.1); color: var(--red); }
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+    .option-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+    .option-group select { width: 100%; padding: 9px 11px; border-radius: 9px; background: var(--panel); border: 1px solid var(--border2); color: var(--text); font-size: 13px; cursor: pointer; outline: none; }
+    .option-group select:focus { border-color: var(--blue); }
+    .add-more-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border: 2px dashed var(--border2); border-radius: 10px; background: none; color: var(--muted); font-size: 13px; cursor: pointer; width: 100%; margin-top: 10px; transition: all .2s; }
+    .add-more-btn:hover { border-color: var(--blue); color: var(--accent); background: var(--blue-glow); }
+    .count-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--blue-glow); border: 1px solid rgba(59,130,246,0.2); border-radius: 8px; padding: 5px 11px; font-size: 13px; color: var(--accent); font-weight: 600; }
+    @media (max-width: 480px) { .options-grid { grid-template-columns: 1fr; } }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🛠️</div>
+    Tool<span>Hub</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="image-enhancer.html">Image Tools</a>
+    <a href="pdf-compressor.html">PDF Tools</a>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-icon btn-secondary" data-theme-toggle onclick="Theme.toggle()">☀️</button>
+    <a href="index.html" class="btn btn-secondary" style="font-size:13px;">← All Tools</a>
+  </div>
+</nav>
+
+<div class="tool-page">
+  <div class="tool-page-header">
+    <div class="breadcrumb"><a href="index.html">Home</a> › <span>Image to PDF</span></div>
+    <h1>🔄 Image to PDF</h1>
+    <p>Convert multiple images into a single PDF. Drag to reorder pages, choose size, and download instantly.</p>
+  </div>
+
+  <!-- Usage Badge -->
+  <div class="usage-wrap" id="usage-wrap"></div>
+
+  <!-- Drop Zone -->
+  <div class="dropzone" id="dropzone">
+    <span class="dropzone-icon">🖼️</span>
+    <h3>Drop images here or click to upload</h3>
+    <p>Supports JPG, PNG, WebP — multiple images at once</p>
+    <p class="dropzone-note">Drag images to reorder pages after uploading</p>
+    <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" multiple>
+  </div>
+
+  <!-- Images List -->
+  <div id="images-section" hidden>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:22px;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+      <div class="count-badge" id="count-badge">📷 0 images</div>
+      <button class="btn btn-ghost" id="clear-all-btn" style="font-size:13px;">🗑️ Clear All</button>
+    </div>
+    <div class="images-list" id="images-list"></div>
+    <button class="add-more-btn" id="add-more-btn">
+      ➕ Add More Images
+      <input type="file" id="add-more-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none;">
+    </button>
+  </div>
+
+  <!-- Settings -->
+  <div class="tool-panel" id="settings-panel" hidden>
+    <div class="tool-panel-title">⚙️ PDF Settings</div>
+    <div class="options-grid">
+      <div class="option-group">
+        <label>Page Size</label>
+        <select id="page-size">
+          <option value="a4">A4 (210 × 297 mm)</option>
+          <option value="letter">Letter (8.5 × 11 in)</option>
+          <option value="a3">A3 (297 × 420 mm)</option>
+          <option value="fit">Fit to Image</option>
+        </select>
+      </div>
+      <div class="option-group">
+        <label>Orientation</label>
+        <select id="orientation">
+          <option value="portrait">Portrait</option>
+          <option value="landscape">Landscape</option>
+          <option value="auto">Auto (per image)</option>
+        </select>
+      </div>
+      <div class="option-group">
+        <label>Image Quality</label>
+        <select id="img-quality">
+          <option value="0.95">High (95%)</option>
+          <option value="0.80" selected>Medium (80%)</option>
+          <option value="0.60">Low (60%)</option>
+        </select>
+      </div>
+      <div class="option-group">
+        <label>Page Margin</label>
+        <select id="margin">
+          <option value="0">No margin</option>
+          <option value="10" selected>Small (10px)</option>
+          <option value="20">Medium (20px)</option>
+          <option value="40">Large (40px)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-purple btn-full btn-lg" id="convert-btn">🔄 Convert to PDF</button>
+  </div>
+
+  <!-- Progress -->
+  <div id="progress-area" hidden>
+    <div class="progress-wrap" style="margin-top:18px;">
+      <div class="progress-label" id="progress-label">Converting images...</div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Download -->
+  <div id="results-area" hidden style="margin-top:18px;">
+    <div class="status-msg success">✅ PDF created successfully! Ready to download.</div>
+    <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;">
+      <button class="btn btn-green btn-lg" id="download-btn" style="flex:1;min-width:160px;justify-content:center;">⬇️ Download PDF</button>
+      <button class="btn btn-secondary btn-lg" id="reset-btn">🔄 Start Over</button>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" style="margin-top:40px;">
+  <div class="footer-inner">
+    <div class="footer-bottom">
+      <span>© 2026 ToolHub · Image to PDF</span>
+      <a href="index.html" style="color:var(--accent);">← Back to All Tools</a>
+    </div>
+  </div>
+</footer>
+<div id="toast"></div>
+
+<script>
+const { jsPDF } = window.jspdf;
+const TOOL_NAME = 'image-to-pdf';
+
+Common.initPage(TOOL_NAME);
+const limitStatus = Common.initLimits(TOOL_NAME, document.getElementById('usage-wrap'));
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+const imagesSection = document.getElementById('images-section');
+const imagesList = document.getElementById('images-list');
+const settingsPanel = document.getElementById('settings-panel');
+const convertBtn = document.getElementById('convert-btn');
+const progressFill = document.getElementById('progress-fill');
+const progressLabel = document.getElementById('progress-label');
+const progressArea = document.getElementById('progress-area');
+const resultsArea = document.getElementById('results-area');
+const downloadBtn = document.getElementById('download-btn');
+const resetBtn = document.getElementById('reset-btn');
+const countBadge = document.getElementById('count-badge');
+
+let images = [], pdfBlob = null, dragSrcIdx = null;
+
+function checkLimit() {
+  const s = Limits.getStatus(TOOL_NAME);
+  if (!s.allowed) { showToast('⛔ Daily limit reached! Resets in ' + Limits.formatCountdown(s.resetAt)); return false; }
+  return true;
+}
+
+dropzone.addEventListener('click', () => { if (!checkLimit()) return; fileInput.click(); });
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragging'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragging'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('dragging');
+  if (!checkLimit()) return;
+  addFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+
+const addMoreBtn = document.getElementById('add-more-btn');
+const addMoreInput = document.getElementById('add-more-input');
+addMoreBtn.addEventListener('click', e => { if (e.target !== addMoreInput) addMoreInput.click(); });
+addMoreInput.addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+document.getElementById('clear-all-btn').addEventListener('click', () => { images = []; renderList(); updateUI(); });
+
+function addFiles(fileList) {
+  const valid = Array.from(fileList).filter(f => f.type.match(/^image\/(jpeg|png|webp)$/));
+  if (!valid.length) { showToast('Please upload JPG, PNG, or WebP images.'); return; }
+  valid.forEach(f => images.push({ file: f, url: URL.createObjectURL(f), name: f.name, size: f.size }));
+  renderList(); updateUI();
+  showToast(`${valid.length} image${valid.length > 1 ? 's' : ''} added!`);
+}
+
+function updateUI() {
+  const has = images.length > 0;
+  imagesSection.hidden = !has; settingsPanel.hidden = !has; resultsArea.hidden = true;
+  countBadge.textContent = `📷 ${images.length} image${images.length !== 1 ? 's' : ''}`;
+}
+
+function renderList() {
+  imagesList.innerHTML = '';
+  images.forEach((img, i) => {
+    const item = document.createElement('div');
+    item.className = 'img-item'; item.draggable = true; item.dataset.idx = i;
+    item.innerHTML = `
+      <span class="drag-handle">⠿</span>
+      <div class="img-item-num">${i+1}</div>
+      <img src="${img.url}" alt="">
+      <div class="img-item-info">
+        <strong>${img.name}</strong>
+        <span>${formatSize(img.size)}</span>
+      </div>
+      <button class="remove-img" data-idx="${i}">✕</button>
+    `;
+    item.addEventListener('dragstart', e => { dragSrcIdx = i; item.classList.add('dragging-item'); e.dataTransfer.effectAllowed = 'move'; });
+    item.addEventListener('dragend', () => item.classList.remove('dragging-item'));
+    item.addEventListener('dragover', e => { e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault(); item.classList.remove('drag-over');
+      if (dragSrcIdx === null || dragSrcIdx === i) return;
+      const moved = images.splice(dragSrcIdx, 1)[0];
+      images.splice(i, 0, moved);
+      dragSrcIdx = null; renderList(); updateUI();
+    });
+    item.querySelector('.remove-img').addEventListener('click', () => { images.splice(i, 1); renderList(); updateUI(); });
+    imagesList.appendChild(item);
+  });
+}
+
+convertBtn.addEventListener('click', async () => {
+  if (!images.length) return;
+  if (!Common.checkAndConsume(TOOL_NAME)) return;
+  Common.initLimits(TOOL_NAME, document.getElementById('usage-wrap'));
+
+  convertBtn.disabled = true;
+  progressArea.hidden = false; resultsArea.hidden = true;
+
+  try {
+    const pageSize = document.getElementById('page-size').value;
+    const orientation = document.getElementById('orientation').value;
+    const quality = parseFloat(document.getElementById('img-quality').value);
+    const margin = parseInt(document.getElementById('margin').value);
+    const pageDims = { a4:[210,297], letter:[215.9,279.4], a3:[297,420], fit:null };
+
+    let pdf = null, isFirst = true;
+
+    for (let i = 0; i < images.length; i++) {
+      progressLabel.textContent = `Processing image ${i+1} of ${images.length}...`;
+      progressFill.style.width = ((i / images.length) * 90 + 5) + '%';
+
+      const img = await loadImage(images[i].url);
+      const imgW = img.naturalWidth, imgH = img.naturalHeight;
+      let pdfW, pdfH, orient;
+
+      if (pageSize === 'fit') {
+        pdfW = imgW; pdfH = imgH;
+        orient = imgW > imgH ? 'landscape' : 'portrait';
+      } else {
+        const dims = pageDims[pageSize];
+        orient = orientation === 'auto' ? (imgW > imgH ? 'landscape' : 'portrait') : orientation;
+        pdfW = orient === 'landscape' ? dims[1] : dims[0];
+        pdfH = orient === 'landscape' ? dims[0] : dims[1];
+      }
+
+      if (isFirst) {
+        pdf = new jsPDF({ orientation: orient, unit: pageSize === 'fit' ? 'px' : 'mm', format: [pdfW, pdfH], compress: true });
+        isFirst = false;
+      } else {
+        pdf.addPage([pdfW, pdfH], orient);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = imgW; canvas.height = imgH;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+      const m = pageSize === 'fit' ? 0 : margin;
+      const aw = pdfW - 2*m, ah = pdfH - 2*m;
+      const ratio = Math.min(aw / imgW, ah / imgH);
+      const dw = imgW * ratio, dh = imgH * ratio;
+      const dx = m + (aw - dw) / 2, dy = m + (ah - dh) / 2;
+      pdf.addImage(dataUrl, 'JPEG', dx, dy, dw, dh, '', 'FAST');
+      await new Promise(r => setTimeout(r, 10));
+    }
+
+    progressFill.style.width = '100%';
+    progressLabel.textContent = 'Generating PDF...';
+    await new Promise(r => setTimeout(r, 100));
+    pdfBlob = pdf.output('blob');
+
+    // Track
+    Tracker.logToolUse(TOOL_NAME, 'convert', { imageCount: images.length, fileNames: images.map(i=>i.name).join(', ').slice(0,100) });
+
+    progressArea.hidden = true; resultsArea.hidden = false;
+    showToast('✅ PDF created successfully!');
+  } catch(e) {
+    console.error(e);
+    showToast('Error: ' + (e.message || 'Could not create PDF'));
+    progressArea.hidden = true;
+  }
+  convertBtn.disabled = false;
+});
+
+downloadBtn.addEventListener('click', () => {
+  if (!pdfBlob) return;
+  const url = URL.createObjectURL(pdfBlob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'converted-images.pdf';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+});
+
+resetBtn.addEventListener('click', () => {
+  images = []; pdfBlob = null;
+  renderList(); updateUI();
+  progressArea.hidden = true; resultsArea.hidden = true; fileInput.value = '';
+  showToast('Ready for new images!');
+});
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img); img.onerror = reject; img.src = src;
+  });
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>

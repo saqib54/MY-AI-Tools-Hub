@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Compressor — ToolHub</title>
+  <meta name="description" content="Compress PDF files online for free. Reduce PDF size while maintaining quality.">
+  <link rel="stylesheet" href="style.css">
+  <script src="js/theme.js"></script>
+  <script src="js/tracker.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/limits.js"></script>
+  <script src="js/common.js"></script>
+  <style>
+    .pdf-preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 14px; }
+    .pdf-page-thumb { background: white; border-radius: 7px; overflow: hidden; border: 1px solid var(--border2); aspect-ratio: 0.707; display: flex; align-items: center; justify-content: center; position: relative; }
+    .pdf-page-thumb canvas { width: 100%; height: 100%; object-fit: contain; }
+    .pdf-page-label { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; font-size: 9px; padding: 2px 5px; border-radius: 3px; }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 18px 0; }
+    .stat-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+    .stat-box .val { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 3px; }
+    .stat-box .label { font-size: 12px; color: var(--muted); }
+    .stat-box.highlight .val { color: var(--green); }
+    @media (max-width: 480px) { .stats-row { grid-template-columns: 1fr 1fr; } .stats-row .stat-box:last-child { grid-column: 1/-1; } }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-logo">
+    <div class="nav-logo-icon">🛠️</div>
+    Tool<span>Hub</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="image-enhancer.html">Image Tools</a>
+    <a href="pdf-compressor.html" class="active">PDF Tools</a>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-icon btn-secondary" data-theme-toggle onclick="Theme.toggle()">☀️</button>
+    <a href="index.html" class="btn btn-secondary" style="font-size:13px;">← All Tools</a>
+  </div>
+</nav>
+
+<div class="tool-page">
+  <div class="tool-page-header">
+    <div class="breadcrumb"><a href="index.html">Home</a> › <span>PDF Compressor</span></div>
+    <h1>📄 PDF Compressor</h1>
+    <p>Reduce your PDF file size while maintaining readable quality. 100% in your browser — no upload to any server.</p>
+  </div>
+
+  <!-- Usage Badge -->
+  <div class="usage-wrap" id="usage-wrap"></div>
+
+  <!-- Drop Zone -->
+  <div class="dropzone" id="dropzone">
+    <span class="dropzone-icon">📄</span>
+    <h3>Drop your PDF here or click to upload</h3>
+    <p>Supports PDF files — up to 50 MB</p>
+    <p class="dropzone-note">All processing happens locally in your browser</p>
+    <input type="file" id="file-input" accept="application/pdf">
+  </div>
+
+  <!-- Settings -->
+  <div class="tool-panel" id="settings-panel" hidden>
+    <div class="tool-panel-title">⚙️ Compression Settings</div>
+    <div style="margin-bottom:18px;">
+      <div class="slider-label" style="margin-bottom:8px;"><strong>Compression Level</strong></div>
+      <div class="quality-btns">
+        <button class="quality-btn" data-level="high">🟢 Low<br><span style="font-size:10px;font-weight:400;color:var(--muted);">Best quality</span></button>
+        <button class="quality-btn active" data-level="medium">🟡 Medium<br><span style="font-size:10px;font-weight:400;color:var(--muted);">Balanced</span></button>
+        <button class="quality-btn" data-level="low">🔴 High<br><span style="font-size:10px;font-weight:400;color:var(--muted);">Smallest file</span></button>
+      </div>
+    </div>
+    <div class="slider-group">
+      <div class="slider-label">
+        <strong>Image Quality</strong>
+        <div class="slider-value" id="pdf-quality-display">70%</div>
+      </div>
+      <input type="range" id="pdf-quality-slider" min="20" max="95" value="70" step="5">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label">
+        <strong>Page Resolution (DPI)</strong>
+        <div class="slider-value" id="dpi-display">96</div>
+      </div>
+      <input type="range" id="dpi-slider" min="50" max="150" value="96" step="10">
+    </div>
+    <button class="btn btn-red btn-full btn-lg" id="compress-btn">📄 Compress PDF</button>
+  </div>
+
+  <!-- Progress -->
+  <div id="progress-area" hidden>
+    <div class="progress-wrap" style="margin-top:18px;">
+      <div class="progress-label" id="progress-label">Loading PDF...</div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+    <div class="pdf-preview-grid" id="pdf-preview-grid"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="results-area" hidden>
+    <div class="stats-row">
+      <div class="stat-box"><div class="val" id="stat-orig">—</div><div class="label">Original Size</div></div>
+      <div class="stat-box highlight"><div class="val" id="stat-comp">—</div><div class="label">Compressed Size</div></div>
+      <div class="stat-box highlight"><div class="val" id="stat-saving">—</div><div class="label">Space Saved</div></div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <button class="btn btn-green btn-lg" id="download-btn" style="flex:1;min-width:160px;justify-content:center;">⬇️ Download PDF</button>
+      <button class="btn btn-secondary btn-lg" id="reset-btn">🔄 New PDF</button>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" style="margin-top:40px;">
+  <div class="footer-inner">
+    <div class="footer-bottom">
+      <span>© 2026 ToolHub · PDF Compressor</span>
+      <a href="index.html" style="color:var(--accent);">← Back to All Tools</a>
+    </div>
+  </div>
+</footer>
+<div id="toast"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const TOOL_NAME = 'pdf-compressor';
+Common.initPage(TOOL_NAME);
+const limitStatus = Common.initLimits(TOOL_NAME, document.getElementById('usage-wrap'));
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+const settingsPanel = document.getElementById('settings-panel');
+const pdfQualitySlider = document.getElementById('pdf-quality-slider');
+const pdfQualityDisplay = document.getElementById('pdf-quality-display');
+const dpiSlider = document.getElementById('dpi-slider');
+const dpiDisplay = document.getElementById('dpi-display');
+const compressBtn = document.getElementById('compress-btn');
+const progressArea = document.getElementById('progress-area');
+const progressFill = document.getElementById('progress-fill');
+const progressLabel = document.getElementById('progress-label');
+const pdfPreviewGrid = document.getElementById('pdf-preview-grid');
+const resultsArea = document.getElementById('results-area');
+const downloadBtn = document.getElementById('download-btn');
+const resetBtn = document.getElementById('reset-btn');
+
+let currentFile = null, compressedBlob = null;
+
+const levelPresets = { high: { quality:85, dpi:120 }, medium: { quality:70, dpi:96 }, low: { quality:45, dpi:72 } };
+
+document.querySelectorAll('[data-level]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-level]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const p = levelPresets[btn.dataset.level];
+    pdfQualitySlider.value = p.quality; dpiSlider.value = p.dpi;
+    updateDisplays();
+  });
+});
+
+function updateDisplays() {
+  pdfQualityDisplay.textContent = pdfQualitySlider.value + '%';
+  dpiDisplay.textContent = dpiSlider.value;
+  pdfQualitySlider.style.setProperty('--pct', ((pdfQualitySlider.value-20)/75*100).toFixed(0)+'%');
+  dpiSlider.style.setProperty('--pct', ((dpiSlider.value-50)/100*100).toFixed(0)+'%');
+}
+pdfQualitySlider.addEventListener('input', updateDisplays);
+dpiSlider.addEventListener('input', updateDisplays);
+updateDisplays();
+
+dropzone.addEventListener('click', () => {
+  if (!checkLimit()) return;
+  fileInput.click();
+});
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragging'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragging'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('dragging');
+  if (!checkLimit()) return;
+  handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+function checkLimit() {
+  const s = Limits.getStatus(TOOL_NAME);
+  if (!s.allowed) { showToast('⛔ Daily limit reached! Resets in ' + Limits.formatCountdown(s.resetAt)); return false; }
+  return true;
+}
+
+function handleFile(file) {
+  if (!file || file.type !== 'application/pdf') { showToast('Please upload a PDF file.'); return; }
+  if (file.size > 50 * 1024 * 1024) { showToast('PDF must be under 50 MB.'); return; }
+  currentFile = file;
+  settingsPanel.hidden = false; resultsArea.hidden = true;
+  showToast(`PDF loaded: ${file.name} (${formatSize(file.size)})`);
+}
+
+compressBtn.addEventListener('click', async () => {
+  if (!currentFile) return;
+  if (!Common.checkAndConsume(TOOL_NAME)) return;
+  Common.initLimits(TOOL_NAME, document.getElementById('usage-wrap'));
+
+  compressBtn.disabled = true;
+  progressArea.hidden = false; pdfPreviewGrid.innerHTML = ''; resultsArea.hidden = true;
+
+  try {
+    const quality = pdfQualitySlider.value / 100;
+    const dpi = parseInt(dpiSlider.value);
+    const scale = dpi / 72;
+
+    progressLabel.textContent = 'Loading PDF pages...';
+    progressFill.style.width = '10%';
+
+    const arrayBuffer = await currentFile.arrayBuffer();
+    const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const numPages = pdfDoc.numPages;
+    const { jsPDF } = window.jspdf;
+
+    const firstPage = await pdfDoc.getPage(1);
+    const viewport = firstPage.getViewport({ scale: 1 });
+    const isLandscape = viewport.width > viewport.height;
+
+    const pdf = new jsPDF({
+      orientation: isLandscape ? 'landscape' : 'portrait',
+      unit: 'px',
+      format: [viewport.width, viewport.height],
+      compress: true
+    });
+
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      progressLabel.textContent = `Processing page ${pageNum} of ${numPages}...`;
+      progressFill.style.width = (10 + (pageNum / numPages) * 80) + '%';
+
+      const page = await pdfDoc.getPage(pageNum);
+      const vp = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = vp.width; canvas.height = vp.height;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+      if (pageNum <= 6) {
+        const thumb = document.createElement('canvas');
+        const ts = 120 / vp.width;
+        thumb.width = 120; thumb.height = Math.round(vp.height * ts);
+        thumb.getContext('2d').drawImage(canvas, 0, 0, thumb.width, thumb.height);
+        const wrap = document.createElement('div');
+        wrap.className = 'pdf-page-thumb';
+        thumb.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+        const lbl = document.createElement('div');
+        lbl.className = 'pdf-page-label'; lbl.textContent = `Page ${pageNum}`;
+        wrap.appendChild(thumb); wrap.appendChild(lbl);
+        pdfPreviewGrid.appendChild(wrap);
+      }
+
+      const imgData = canvas.toDataURL('image/jpeg', quality);
+      const origVP = page.getViewport({ scale: 1 });
+      if (pageNum > 1) pdf.addPage([origVP.width, origVP.height], origVP.width > origVP.height ? 'landscape' : 'portrait');
+      pdf.addImage(imgData, 'JPEG', 0, 0, origVP.width, origVP.height, '', 'FAST');
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    progressLabel.textContent = 'Generating compressed PDF...';
+    progressFill.style.width = '95%';
+    const pdfBlob = pdf.output('blob');
+    compressedBlob = pdfBlob;
+
+    progressFill.style.width = '100%';
+    setTimeout(() => { progressArea.hidden = true; }, 500);
+
+    const saving = Math.round((1 - pdfBlob.size / currentFile.size) * 100);
+    document.getElementById('stat-orig').textContent = formatSize(currentFile.size);
+    document.getElementById('stat-comp').textContent = formatSize(pdfBlob.size);
+    document.getElementById('stat-saving').textContent = saving > 0 ? saving + '%' : '~0%';
+
+    // Track
+    Tracker.logDownload(TOOL_NAME, currentFile.name, currentFile.size, pdfBlob.size);
+
+    resultsArea.hidden = false;
+    showToast('✅ PDF compressed successfully!');
+  } catch(e) {
+    console.error(e);
+    showToast('Error: ' + (e.message || 'Could not compress PDF'));
+    progressArea.hidden = true;
+  }
+  compressBtn.disabled = false;
+});
+
+downloadBtn.addEventListener('click', () => {
+  if (!compressedBlob) return;
+  const url = URL.createObjectURL(compressedBlob);
+  const a = document.createElement('a');
+  a.href = url; a.download = currentFile.name.replace('.pdf', '') + '-compressed.pdf';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+});
+
+resetBtn.addEventListener('click', () => {
+  currentFile = null; compressedBlob = null;
+  settingsPanel.hidden = true; progressArea.hidden = true;
+  resultsArea.hidden = true; pdfPreviewGrid.innerHTML = ''; fileInput.value = '';
+  showToast('Ready for a new PDF!');
+});
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>

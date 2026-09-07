@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — ToolHub</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="style.css">
+  <script src="js/theme.js"></script>
+  <style>
+    /* ── Extra dashboard styles ── */
+    .badge-ev     { display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap; }
+    .badge-register    { background:rgba(34,197,94,0.15); color:#4ade80; }
+    .badge-login       { background:rgba(59,130,246,0.15);color:#60a5fa; }
+    .badge-owner_login { background:rgba(251,191,36,0.15);color:#fbbf24; }
+    .badge-logout      { background:rgba(100,116,139,0.12);color:#94a3b8;}
+    .badge-tool_use    { background:rgba(168,85,247,0.15);color:#c084fc; }
+    .badge-download    { background:rgba(34,197,94,0.15); color:#4ade80; }
+    .badge-page_view   { background:rgba(59,130,246,0.08);color:#93c5fd; }
+
+    .tab-bar  { display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap; }
+    .tab-btn  { padding:9px 18px;border-radius:9px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s; }
+    .tab-btn.active { background:var(--blue);border-color:var(--blue);color:#fff; }
+    .tab-content       { display:none; }
+    .tab-content.active{ display:block; }
+
+    .search-bar { width:100%;padding:10px 14px;border-radius:9px;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:14px;outline:none;margin-bottom:16px; }
+    .search-bar:focus  { border-color:var(--blue); }
+
+    .danger-zone { background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:16px;margin-top:24px; }
+    .danger-zone h4  { color:var(--red);font-size:14px;margin-bottom:10px; }
+
+    /* gate */
+    #gate { min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px; }
+    .gate-card { width:100%;max-width:400px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px;box-shadow:0 20px 60px var(--shadow); }
+    .gate-icon { font-size:44px;text-align:center;margin-bottom:16px; }
+    .gate-title{ font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:700;text-align:center;margin-bottom:6px; }
+    .gate-sub  { color:var(--muted);font-size:14px;text-align:center;margin-bottom:24px; }
+    .gate-err  { background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px;margin-bottom:14px;display:none; }
+
+    @media(max-width:600px){ .admin-panel{padding:20px 3% 40px;} }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ LOGIN GATE ═══════════════════════════════ -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-icon">📊</div>
+    <h1 class="gate-title">ToolHub Dashboard</h1>
+    <p class="gate-sub">Sign in with your account to continue</p>
+
+    <div class="gate-err" id="gate-err">⚠️ Incorrect email or password.</div>
+
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="g-email"
+        placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="g-pass"
+        placeholder="Password" autocomplete="current-password">
+    </div>
+    <button class="auth-btn" id="gate-btn" style="margin-top:16px;"
+      onclick="gateLogin()">Sign In →</button>
+
+    <p style="text-align:center;margin-top:18px;font-size:13px;">
+      <a href="index.html" style="color:var(--muted);">← Back to ToolHub</a>
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ DASHBOARD ════════════════════════════════ -->
+<div id="app" hidden>
+
+  <nav class="navbar">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon">🛠️</div>
+      Tool<span>Hub</span>
+    </a>
+    <span style="font-size:12px;background:var(--blue-glow);border:1px solid rgba(59,130,246,.25);color:var(--accent);padding:4px 12px;border-radius:6px;font-weight:600;">📊 Dashboard</span>
+    <div class="nav-right">
+      <button class="btn btn-icon btn-secondary" data-theme-toggle onclick="Theme.toggle()">☀️</button>
+      <span id="nav-name" style="font-size:13px;color:var(--muted);"></span>
+      <button class="btn btn-ghost" style="font-size:13px;" onclick="signOut()">🚪 Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="admin-panel">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px;">📊 ToolHub Dashboard</h1>
+        <p id="dash-sub" style="color:var(--muted);font-size:13px;margin-top:4px;"></p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="refresh()">🔄 Refresh</button>
+        <button class="btn btn-secondary" onclick="exportCSV()">📥 Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="admin-stats" id="stats-row"></div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-btn-logs"  onclick="showTab('logs')">📋 Activity Logs</button>
+      <button class="tab-btn"        id="tab-btn-users" onclick="showTab('users')">👥 Users</button>
+      <button class="tab-btn"        id="tab-btn-usage" onclick="showTab('usage')">📊 Tool Usage</button>
+    </div>
+
+    <!-- Logs -->
+    <div class="tab-content active" id="tab-logs">
+      <input class="search-bar" id="log-search" type="text"
+        placeholder="🔍 Search by name, email, tool…" oninput="renderLogs()">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Time</th><th>Event</th><th>Name</th><th>Email</th><th>Detail</th></tr></thead>
+          <tbody id="logs-tbody"></tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px;font-size:12px;color:var(--muted);" id="logs-count"></p>
+    </div>
+
+    <!-- Users -->
+    <div class="tab-content" id="tab-users">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Registered</th><th>ID</th></tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px;font-size:12px;color:var(--muted);" id="users-count"></p>
+    </div>
+
+    <!-- Usage -->
+    <div class="tab-content" id="tab-usage">
+      <div id="usage-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;"></div>
+    </div>
+
+    <!-- Danger -->
+    <div class="danger-zone">
+      <h4>⚠️ Danger Zone</h4>
+      <button class="btn btn-red" onclick="clearLogs()">🗑️ Clear All Logs</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  OWNER CREDENTIALS — change only here
+// ═══════════════════════════════════════════════
+const OWNER_EMAIL = 'msaqibali433@gmail.com';
+const OWNER_PASS  = 'Saqib@23';
+const OWNER_NAME  = 'Saqib Ali';
+
+// ── localStorage keys (must match auth.js / tracker.js) ──
+const KEY_USERS   = '_th_u';     // registered users object
+const KEY_LOGS    = '_th_evts';  // tracker events array
+const KEY_GATE    = '_th_gv';    // "gate verified" flag (session storage)
+
+// ══════════════════════════════════════════════
+//  GATE LOGIN
+// ══════════════════════════════════════════════
+function gateLogin() {
+  const email = (document.getElementById('g-email').value || '').trim().toLowerCase();
+  const pass  = document.getElementById('g-pass').value || '';
+  const btn   = document.getElementById('gate-btn');
+  const err   = document.getElementById('gate-err');
+
+  err.style.display = 'none';
+
+  if (email === OWNER_EMAIL.toLowerCase() && pass === OWNER_PASS) {
+    // Store gate flag in sessionStorage (lasts until tab is closed)
+    sessionStorage.setItem(KEY_GATE, '1');
+    showDashboard();
+  } else {
+    err.style.display = 'block';
+    btn.textContent = 'Try Again →';
+    setTimeout(() => { btn.textContent = 'Sign In →'; }, 2000);
+  }
+}
+
+// Allow Enter key
+document.getElementById('g-email').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('g-pass').focus(); });
+document.getElementById('g-pass').addEventListener('keydown',  e => { if (e.key==='Enter') gateLogin(); });
+
+// Auto-open if already verified this session
+if (sessionStorage.getItem(KEY_GATE) === '1') {
+  showDashboard();
+}
+
+function showDashboard() {
+  document.getElementById('gate').hidden = true;
+  document.getElementById('app').hidden  = false;
+  document.getElementById('nav-name').textContent = OWNER_NAME;
+  document.getElementById('dash-sub').textContent =
+    'Welcome, ' + OWNER_NAME + ' · Showing all user activity from this device';
+  refresh();
+}
+
+function signOut() {
+  sessionStorage.removeItem(KEY_GATE);
+  document.getElementById('gate').hidden = false;
+  document.getElementById('app').hidden  = true;
+  document.getElementById('g-email').value = '';
+  document.getElementById('g-pass').value  = '';
+}
+
+// ══════════════════════════════════════════════
+//  DATA HELPERS
+// ══════════════════════════════════════════════
+function getLogs() {
+  try { return JSON.parse(localStorage.getItem(KEY_LOGS) || '[]'); }
+  catch { return []; }
+}
+
+function getUsers() {
+  try {
+    const obj = JSON.parse(localStorage.getItem(KEY_USERS) || '{}');
+    return Object.values(obj);
+  } catch { return []; }
+}
+
+// ══════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════
+function showTab(name) {
+  ['logs','users','usage'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+    document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  REFRESH ALL
+// ══════════════════════════════════════════════
+function refresh() {
+  renderStats();
+  renderLogs();
+  renderUsers();
+  renderUsage();
+}
+
+// ══════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════
+function renderStats() {
+  const logs      = getLogs();
+  const users     = getUsers();
+  const todayStr  = new Date().toDateString();
+  const todayEvts = logs.filter(l => new Date(l.t).toDateString() === todayStr);
+  const toolUses  = logs.filter(l => l.ev === 'tool_use');
+  const downloads = logs.filter(l => l.ev === 'download');
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="admin-stat"><div class="val">${users.length}</div><div class="lbl">Registered Users</div></div>
+    <div class="admin-stat"><div class="val">${logs.length}</div><div class="lbl">Total Events</div></div>
+    <div class="admin-stat"><div class="val">${todayEvts.length}</div><div class="lbl">Events Today</div></div>
+    <div class="admin-stat"><div class="val">${downloads.length}</div><div class="lbl">Downloads</div></div>
+  `;
+}
+
+// ══════════════════════════════════════════════
+//  LOGS TABLE
+// ══════════════════════════════════════════════
+function renderLogs() {
+  const allLogs = [...getLogs()].reverse();   // newest first
+  const q = (document.getElementById('log-search').value || '').trim().toLowerCase();
+  const rows = q
+    ? allLogs.filter(l =>
+        (l.email||'').toLowerCase().includes(q) ||
+        (l.name ||'').toLowerCase().includes(q) ||
+        (l.ev   ||'').toLowerCase().includes(q) ||
+        (l.tool ||'').toLowerCase().includes(q) ||
+        (l.fileName||'').toLowerCase().includes(q))
+    : allLogs;
+
+  const shown = rows.slice(0, 500);
+  document.getElementById('logs-tbody').innerHTML = shown.length
+    ? shown.map(l => `
+        <tr>
+          <td style="white-space:nowrap;font-size:11px;color:var(--muted);">${fmtDate(l.t)}</td>
+          <td><span class="badge-ev badge-${(l.ev||'').replace(/[^a-z_]/g,'')}">${l.ev||'—'}</span></td>
+          <td style="font-size:13px;font-weight:500;">${esc(l.name||'—')}</td>
+          <td style="font-size:12px;color:var(--muted);">${esc(l.email||'—')}</td>
+          <td style="font-size:12px;color:var(--muted);">${esc(detail(l))}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted);">No events found</td></tr>';
+
+  document.getElementById('logs-count').textContent =
+    `Showing ${shown.length} of ${rows.length} (total stored: ${getLogs().length})`;
+}
+
+// ══════════════════════════════════════════════
+//  USERS TABLE
+// ══════════════════════════════════════════════
+function renderUsers() {
+  const users = getUsers();
+  document.getElementById('users-tbody').innerHTML = users.length
+    ? users.map(u => `
+        <tr>
+          <td style="font-weight:500;">${esc(u.name||'—')}</td>
+          <td style="color:var(--accent);">${esc(u.email||'—')}</td>
+          <td style="font-size:12px;color:var(--muted);">${fmtDate(u.createdAt)}</td>
+          <td style="font-size:11px;color:var(--muted2);font-family:monospace;">${u.id||'—'}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted);">No registered users yet</td></tr>';
+
+  document.getElementById('users-count').textContent =
+    `${users.length} registered user${users.length !== 1 ? 's' : ''}`;
+}
+
+// ══════════════════════════════════════════════
+//  USAGE GRID
+// ══════════════════════════════════════════════
+function renderUsage() {
+  const uses = getLogs().filter(l => l.ev === 'tool_use' || l.ev === 'download');
+  const map  = {};
+  uses.forEach(l => {
+    const k = l.tool || 'unknown';
+    if (!map[k]) map[k] = { uses:0, downloads:0, users: new Set() };
+    if (l.ev === 'tool_use')  map[k].uses++;
+    if (l.ev === 'download')  map[k].downloads++;
+    if (l.email) map[k].users.add(l.email);
+  });
+
+  const entries = Object.entries(map);
+  document.getElementById('usage-grid').innerHTML = entries.length
+    ? entries.map(([tool, d]) => `
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:8px;">${toolEmoji(tool)}</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">${esc(toolLabel(tool))}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">${d.users.size} unique user${d.users.size!==1?'s':''}</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <div style="background:var(--panel);border-radius:6px;padding:6px 10px;font-size:11px;min-width:50px;">
+              <div style="font-weight:700;color:var(--accent);">${d.uses}</div>
+              <div style="color:var(--muted);">uses</div>
+            </div>
+            <div style="background:var(--panel);border-radius:6px;padding:6px 10px;font-size:11px;min-width:50px;">
+              <div style="font-weight:700;color:var(--green);">${d.downloads}</div>
+              <div style="color:var(--muted);">downloads</div>
+            </div>
+          </div>
+        </div>`).join('')
+    : '<p style="color:var(--muted);text-align:center;padding:40px;grid-column:1/-1;">No tool usage recorded yet.</p>';
+}
+
+// ══════════════════════════════════════════════
+//  CLEAR + EXPORT
+// ══════════════════════════════════════════════
+function clearLogs() {
+  if (!confirm('Clear all activity logs? Cannot be undone.')) return;
+  localStorage.removeItem(KEY_LOGS);
+  refresh();
+  toast('✅ Logs cleared.');
+}
+
+function exportCSV() {
+  const logs = getLogs();
+  if (!logs.length) { toast('No logs to export.'); return; }
+  const hdr = ['Time','Event','Name','Email','Tool','FileName','UA'];
+  const rows = logs.map(l => [
+    new Date(l.t).toISOString(), l.ev||'', l.name||'', l.email||'',
+    l.tool||'', l.fileName||'', (l.ua||'').replace(/,/g,' ')
+  ]);
+  const csv = [hdr, ...rows].map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv' }));
+  a.download = 'toolhub-logs-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('📥 CSV exported!');
+}
+
+// ══════════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════════
+function toolEmoji(t) {
+  return {'image-enhancer':'🖼️','image-compressor':'🗜️','pdf-compressor':'📄','image-to-pdf':'🔄'}[t]||'🛠️';
+}
+function toolLabel(t) {
+  return {'image-enhancer':'Image Enhancer','image-compressor':'Image Compressor','pdf-compressor':'PDF Compressor','image-to-pdf':'Image to PDF'}[t]||t;
+}
+function detail(l) {
+  const p = [];
+  if (l.tool)     p.push(l.tool);
+  if (l.fileName) p.push(l.fileName.slice(0,40));
+  if (l.action && !l.tool) p.push(l.action);
+  return p.join(' · ');
+}
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let _tt;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
