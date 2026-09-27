@@ -121,10 +121,10 @@ const SupabaseTracker = {
   /** Get events from last N hours (0 = All time) */
   async getRecentEvents(hours = 0) {
     try {
-      let url = `${SUPABASE_URL}/rest/v1/toolhub_events?order=t.desc&limit=1000`;
+      let url = `${SUPABASE_URL}/rest/v1/toolhub_events?order=id.desc&limit=1000`;
       if (hours > 0) {
         const since = Date.now() - hours * 3600 * 1000;
-        url = `${SUPABASE_URL}/rest/v1/toolhub_events?t=gte.${since}&order=t.desc&limit=1000`;
+        url = `${SUPABASE_URL}/rest/v1/toolhub_events?t=gte.${since}&order=id.desc&limit=1000`;
       }
       const res = await fetch(url, {
         headers: {

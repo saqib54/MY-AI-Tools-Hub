@@ -784,14 +784,17 @@ img { max-width: 100%; }
   .modal-card.auth-modal-split { grid-template-columns: 1fr; max-width: 100%; border-radius: 20px; }
   .auth-modal-left { display: none; }
   .auth-modal-right { padding: 24px 18px; }
+
+  .metrics-bar, .why-choose-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
 }
 
 @media (max-width: 480px) {
   .category-grid-5 { grid-template-columns: 1fr !important; }
   .presets-grid-cards { grid-template-columns: 1fr; }
   .popular-tools-grid { grid-template-columns: 1fr; }
-  .metrics-bar { grid-template-columns: 1fr 1fr; }
+  .metrics-bar, .why-choose-grid { grid-template-columns: 1fr !important; }
   .nav-center-pills { max-width: calc(100vw - 110px); }
 }
+
 
 

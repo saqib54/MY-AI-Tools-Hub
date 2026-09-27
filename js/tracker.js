@@ -7,11 +7,23 @@
 const TRACK_KEY = '_th_evts';   // same as KEY_LOGS in admin-view.html
 const MAX_LOGS  = 3000;
 
+const _pendingQueue = [];
+
+function _flushQueue() {
+  if (window.SupabaseTracker && typeof window.SupabaseTracker.log === 'function') {
+    while (_pendingQueue.length > 0) {
+      const item = _pendingQueue.shift();
+      window.SupabaseTracker.log(item.event, item.entry);
+    }
+  }
+}
+
 // Dynamic auto-loader for supabase-tracker.js
 if (typeof window !== 'undefined' && !document.querySelector('script[data-sb-tracker]')) {
   const script = document.createElement('script');
   script.dataset.sbTracker = '1';
   script.src = 'js/supabase-tracker.js';
+  script.onload = () => _flushQueue();
   document.head.appendChild(script);
 }
 
@@ -65,7 +77,11 @@ const Tracker = {
 
       // ── Sync to Supabase Cloud (Non-blocking) ────────────
       if (window.SupabaseTracker && typeof window.SupabaseTracker.log === 'function') {
+        _flushQueue();
         window.SupabaseTracker.log(event, entry);
+      } else {
+        _pendingQueue.push({ event, entry });
+        setTimeout(_flushQueue, 1500);
       }
     } catch (e) {
       // Silent fail — never break caller

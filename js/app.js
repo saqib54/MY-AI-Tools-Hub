@@ -428,7 +428,7 @@ const App = {
       <!-- WHY CHOOSE US -->
       <section class="section-container" style="margin-bottom:40px;">
         <h3 class="section-title" style="text-align:center;margin-bottom:24px;">⭐ Why Choose Tool Hub 2.0?</h3>
-        <div class="metrics-bar" style="grid-template-columns: repeat(5, 1fr);">
+        <div class="metrics-bar why-choose-grid">
           <div class="metric-card" style="text-align:center;">
             <div style="font-size:32px;margin-bottom:8px;">⚡</div>
             <h4>Easy to Use</h4>
