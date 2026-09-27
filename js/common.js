@@ -78,8 +78,12 @@ const Common = {
       }
     }
 
-    // Setup hamburger drawer
+    // Setup hamburger drawer & mobile sidebar toggle
     this.initHamburger(user);
+
+    if (user && window.SupabaseTracker) {
+      try { window.SupabaseTracker.saveUser(user); } catch (e) {}
+    }
 
     if (toolName && window.Tracker) Tracker.log('page_view', { tool: toolName });
     return true;
@@ -94,9 +98,17 @@ const Common = {
     if (!ham) {
       ham = document.createElement('button');
       ham.className = 'nav-hamburger';
-      ham.setAttribute('aria-label', 'Menu');
-      ham.innerHTML = '<span></span><span></span><span></span>';
+      ham.setAttribute('aria-label', 'Toggle Sidebar Menu');
+      ham.setAttribute('title', 'Toggle Navigation Menu');
+      ham.innerHTML = '<span class="ham-icon">☰</span> <span class="ham-text">Menu</span>';
       navbar.appendChild(ham);
+    }
+
+    let backdrop = document.querySelector('.nav-drawer-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.className = 'nav-drawer-backdrop';
+      document.body.appendChild(backdrop);
     }
 
     let drawer = document.querySelector('.nav-drawer');
@@ -106,39 +118,130 @@ const Common = {
       document.body.appendChild(drawer);
     }
 
-    const navLinks = document.querySelector('.nav-links');
-    let drawerContent = navLinks ? navLinks.innerHTML : '';
-    
+    const closeDrawer = () => {
+      ham.classList.remove('open');
+      drawer.classList.remove('open');
+      backdrop.classList.remove('open');
+      document.body.style.overflow = '';
+    };
+
+    const openDrawer = () => {
+      ham.classList.add('open');
+      drawer.classList.add('open');
+      backdrop.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    };
+
+    let drawerContent = `
+      <div class="drawer-header">
+        <div class="nav-logo" style="font-size:16px;">
+          <div class="nav-logo-icon" style="width:30px;height:30px;font-size:14px;">🛠️</div>
+          <div class="logo-title">Tool <span>Hub 2.0</span></div>
+        </div>
+        <button type="button" class="drawer-close-btn" aria-label="Close menu">✖ Close</button>
+      </div>
+
+      <!-- PRO UPGRADE CARD (MOBILE VISIBLE) -->
+      <div class="drawer-pro-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:18px;">👑</span>
+          <strong style="font-size:14px;color:#fff;">ToolHub PRO Plan</strong>
+          <span class="pro-badge-pill">PRO</span>
+        </div>
+        <p style="font-size:11.5px;color:rgba(255,255,255,0.85);margin-bottom:12px;line-height:1.4;">
+          Unlock unlimited daily downloads, batch processing & VIP WhatsApp support!
+        </p>
+        <a href="https://wa.me/92329289993?text=Hello%20Saqib%2C%20I%20want%20to%20upgrade%20to%20ToolHub%20PRO" 
+           target="_blank" class="drawer-upgrade-btn">
+          💬 Upgrade via WhatsApp (+92329289993) →
+        </a>
+      </div>
+
+      <div class="drawer-section-title">NAVIGATION & TOOLS</div>
+      <div class="drawer-links-group">
+        <a href="#home" class="drawer-link"><span class="dl-icon">🏠</span> Home</a>
+        <a href="#tools-section" class="drawer-link"><span class="dl-icon">🗂️</span> All Tools</a>
+        <a href="#image-tools" class="drawer-link"><span class="dl-icon">🖼️</span> Image Tools</a>
+        <a href="#pdf-tools" class="drawer-link"><span class="dl-icon">📄</span> PDF Tools</a>
+        <a href="#video-tools" class="drawer-link"><span class="dl-icon">🎥</span> Video Tools</a>
+        <a href="#smart-tools" class="drawer-link"><span class="dl-icon">⚡</span> Smart Tools</a>
+        <a href="#settings" class="drawer-link"><span class="dl-icon">⚙️</span> Settings & Profile</a>
+        <a href="#support" class="drawer-link"><span class="dl-icon">❓</span> Help & Support</a>
+        <a href="#about" class="drawer-link"><span class="dl-icon">ℹ️</span> About ToolHub</a>
+        <a href="#privacy" class="drawer-link"><span class="dl-icon">🔒</span> Privacy Policy</a>
+      </div>
+    `;
+
     if (user) {
       drawerContent += `
         <div class="drawer-divider"></div>
-        <div style="padding:10px 14px;font-size:13px;color:var(--muted);">
-          Logged in as <strong style="color:var(--text);">${this.escapeHtml(user.name || user.email)}</strong>
-          ${user.isOwner ? '<span style="margin-left:6px;background:gold;color:black;font-size:10px;font-weight:900;padding:2px 6px;border-radius:4px;">OWNER</span>' : ''}
+        <div class="drawer-user-info">
+          <div class="nav-avatar sm" style="background:var(--blue);color:white;font-weight:800;">${(user.name||user.email||'U')[0].toUpperCase()}</div>
+          <div style="overflow:hidden;">
+            <div style="font-weight:700;font-size:13px;color:var(--text);">${this.escapeHtml(user.name || 'User')}</div>
+            <div style="font-size:11px;color:var(--muted);">${this.escapeHtml(user.email)}</div>
+          </div>
+          ${user.isOwner ? '<span class="owner-badge" style="margin-left:auto;">OWNER</span>' : '<span class="plan-badge" style="margin-left:auto;">FREE</span>'}
         </div>
-        ${user.isOwner ? '<a href="admin-view.html" style="color:var(--accent);font-weight:700;">👑 Admin Console</a>' : ''}
-        <button onclick="Auth.logout();location.reload();" 
-          style="color:var(--red);text-align:left;padding:12px 14px;border-radius:10px;background:none;width:100%;border:none;cursor:pointer;font-size:15px;font-weight:600;">
-          🚪 Logout
+        ${user.isOwner ? '<a href="admin-view.html" class="drawer-link admin-link"><span class="dl-icon">👑</span> Admin Dashboard</a>' : ''}
+        <button type="button" class="drawer-logout-btn" id="drawer-btn-logout">
+          🚪 Sign Out
         </button>
       `;
     } else {
       drawerContent += `
         <div class="drawer-divider"></div>
-        <button onclick="Auth.openModal('login');document.querySelector('.nav-hamburger').classList.remove('open');document.querySelector('.nav-drawer').classList.remove('open');" style="color:var(--accent);background:none;border:none;padding:12px 14px;text-align:left;font-size:15px;font-weight:700;cursor:pointer;width:100%;">🔐 Sign In</button>
-        <button onclick="Auth.openModal('register');document.querySelector('.nav-hamburger').classList.remove('open');document.querySelector('.nav-drawer').classList.remove('open');" style="color:var(--green);background:none;border:none;padding:12px 14px;text-align:left;font-size:15px;font-weight:700;cursor:pointer;width:100%;">✨ Create Free Account</button>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:8px 0;">
+          <button type="button" class="btn btn-ghost btn-full" id="drawer-btn-signin" style="font-size:14px;justify-content:center;">🔐 Sign In</button>
+          <button type="button" class="btn btn-primary btn-full" id="drawer-btn-register" style="font-size:14px;justify-content:center;">✨ Create Free Account</button>
+        </div>
       `;
     }
 
     drawer.innerHTML = drawerContent;
 
-    ham.onclick = () => {
-      ham.classList.toggle('open');
-      drawer.classList.toggle('open');
+    // Toggle event listeners
+    ham.onclick = (e) => {
+      e.stopPropagation();
+      if (drawer.classList.contains('open')) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
     };
 
+    backdrop.onclick = closeDrawer;
+
+    const closeBtn = drawer.querySelector('.drawer-close-btn');
+    if (closeBtn) closeBtn.onclick = closeDrawer;
+
+    const logoutBtn = drawer.querySelector('#drawer-btn-logout');
+    if (logoutBtn) {
+      logoutBtn.onclick = () => {
+        closeDrawer();
+        Auth.logout();
+        location.reload();
+      };
+    }
+
+    const signinBtn = drawer.querySelector('#drawer-btn-signin');
+    if (signinBtn) {
+      signinBtn.onclick = () => {
+        closeDrawer();
+        Auth.openModal('login');
+      };
+    }
+
+    const regBtn = drawer.querySelector('#drawer-btn-register');
+    if (regBtn) {
+      regBtn.onclick = () => {
+        closeDrawer();
+        Auth.openModal('register');
+      };
+    }
+
     drawer.querySelectorAll('a').forEach(a => {
-      a.onclick = () => { ham.classList.remove('open'); drawer.classList.remove('open'); };
+      a.onclick = closeDrawer;
     });
   },
 

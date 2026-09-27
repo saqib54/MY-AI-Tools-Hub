@@ -290,21 +290,49 @@ async function fetchCloudData() {
 }
 
 // ── Merged data helpers ──
+function getLogTime(l) {
+  if (!l) return Date.now();
+  if (typeof l.t === 'number' && l.t > 0) return l.t;
+  if (l.created_at) {
+    const t = new Date(l.created_at).getTime();
+    if (!isNaN(t) && t > 0) return t;
+  }
+  if (l.dt) {
+    const t = new Date(l.dt).getTime();
+    if (!isNaN(t) && t > 0) return t;
+  }
+  return Date.now();
+}
+
 function getLogs() {
   const local = (() => {
     try { return JSON.parse(localStorage.getItem(KEY_LOGS) || '[]'); }
     catch { return []; }
   })();
 
-  if (_cloudLogs.length === 0) return local;
+  const logMap = new Map();
+
+  local.forEach(l => {
+    const time = getLogTime(l);
+    const key = `${time}_${l.ev}_${l.email||''}`;
+    logMap.set(key, { ...l, t: time });
+  });
+
+  _cloudLogs.forEach(l => {
+    const time = getLogTime(l);
+    const key = `${l.id || time}_${l.ev}_${l.email||''}`;
+    logMap.set(key, { ...l, t: time });
+  });
+
+  const merged = Array.from(logMap.values());
 
   const hours = parseInt(document.getElementById('time-filter')?.value || '0');
   if (hours > 0) {
     const cutoff = Date.now() - hours * 3600 * 1000;
-    return _cloudLogs.filter(l => (l.t || 0) >= cutoff);
+    return merged.filter(l => getLogTime(l) >= cutoff);
   }
 
-  return _cloudLogs;
+  return merged;
 }
 
 function getUsers() {
@@ -314,23 +342,44 @@ function getUsers() {
   })();
   const localArr = Object.values(localObj);
 
-  if (_cloudUsers.length === 0) return localArr;
+  const userMap = new Map();
 
-  const cloudEmails = new Set(_cloudUsers.map(u => u.email?.toLowerCase()));
-  const localOnly   = localArr.filter(u => !cloudEmails.has((u.email||'').toLowerCase()));
-  
-  const merged = [..._cloudUsers, ...localOnly].map(u => {
-    const em = (u.email||'').toLowerCase();
-    if (localObj[em]) {
-      return { ...u, ...localObj[em] };
+  localArr.forEach(u => {
+    if (u.email) userMap.set(u.email.toLowerCase(), u);
+  });
+
+  _cloudUsers.forEach(u => {
+    if (u.email) {
+      const em = u.email.toLowerCase();
+      const existing = userMap.get(em) || {};
+      userMap.set(em, { ...existing, ...u });
     }
+  });
+
+  const logs = getLogs();
+  logs.forEach(l => {
+    if (l.email) {
+      const em = l.email.toLowerCase();
+      if (!userMap.has(em)) {
+        userMap.set(em, {
+          email: em,
+          name: l.name || em.split('@')[0],
+          id: l.uid || 'u_' + getLogTime(l),
+          createdAt: getLogTime(l),
+          isPro: (em === OWNER_EMAIL.toLowerCase())
+        });
+      }
+    }
+  });
+
+  const merged = Array.from(userMap.values());
+  return merged.map(u => {
+    const em = (u.email||'').toLowerCase();
     if (em === OWNER_EMAIL.toLowerCase()) {
       return { ...u, isPro: true, isOwner: true };
     }
     return u;
   });
-
-  return merged;
 }
 
 // ══════════════════════════════════════════════

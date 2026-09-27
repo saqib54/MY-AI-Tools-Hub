@@ -778,7 +778,7 @@ const App = {
         <h1 style="font-size:26px;font-weight:900;margin-bottom:6px;">⚙️ Settings</h1>
         <p style="color:var(--muted);font-size:14px;margin-bottom:24px;">Manage your account, preferences and app settings</p>
 
-        <div class="settings-grid" style="grid-template-columns: 210px 1.2fr 1fr; gap: 20px;">
+        <div class="settings-grid">
           <!-- LEFT MENU (MATCHES PROTOTYPE IMAGE 3) -->
           <div class="settings-menu">
             <button type="button" class="settings-menu-item active">👤 Account Settings</button>
