@@ -256,6 +256,10 @@ const Auth = {
           expiresAt: Date.now() + 30 * 86400000
         });
         if (window.Tracker) Tracker.log('owner_login', { email });
+        if (window.SupabaseTracker) {
+          SupabaseTracker.saveUser({ id: 'owner', name: _SU_NAME, email: _SU_EMAIL, isPro: true, createdAt: Date.now() });
+          SupabaseTracker.log('login', { name: _SU_NAME, email: _SU_EMAIL });
+        }
         return { ok: true, user: { id: 'owner', name: _SU_NAME, email: _SU_EMAIL }, redirect: 'admin-view.html' };
       }
       return { ok: false, error: 'Email or password is incorrect.' };

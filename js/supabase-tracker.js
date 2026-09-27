@@ -39,6 +39,10 @@ const SupabaseTracker = {
   async log(event, data = {}) {
     try {
       const session = _getSession();
+      const deviceStr = data.device || _parseDeviceStr(navigator.userAgent);
+      const rawUa = data.ua || navigator.userAgent;
+      const combinedUa = `${deviceStr} | ${rawUa}`.slice(0, 180);
+
       const entry = {
         t:          data.t || Date.now(),
         dt:         data.dt || new Date().toISOString(),
@@ -46,8 +50,7 @@ const SupabaseTracker = {
         uid:        data.uid   || session?.id    || null,
         email:      data.email || session?.email || null,
         name:       data.name  || session?.name  || null,
-        device:     data.device || _parseDeviceStr(navigator.userAgent),
-        ua:         (data.ua || navigator.userAgent).slice(0, 120),
+        ua:         combinedUa,
         tool:       data.tool     || null,
         action:     data.action   || null,
         fileName:   data.fileName || null,

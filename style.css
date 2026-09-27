@@ -705,6 +705,28 @@ img { max-width: 100%; }
 .preset-card-title { font-size: 12px; font-weight: 800; line-height: 1.2; }
 .preset-card-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
 
+/* ============ DATA TABLES (ADMIN & USER DASHBOARD) ============ */
+.data-table-wrap {
+  width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: var(--shadow-sm); margin-bottom: 14px;
+}
+.data-table {
+  width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;
+}
+.data-table th {
+  background: var(--bg); padding: 12px 16px; font-weight: 800; color: var(--muted);
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text);
+  vertical-align: middle;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--card-hover); }
+
+/* ============ DEDICATED MOBILE RESPONSIVE SUITE (PHONES & TABLETS) ============ */
 @media (max-width: 1280px) {
   .category-grid-5 { grid-template-columns: repeat(3, 1fr) !important; }
 }
@@ -713,9 +735,63 @@ img { max-width: 100%; }
   .tool-workspace-split { grid-template-columns: 1fr; }
   .tool-hero-banner { grid-template-columns: 1fr; }
   .tool-hero-visual { display: none; }
+  .sidebar { display: none; }
+  .nav-search-bar { display: none; }
 }
+
+@media (max-width: 768px) {
+  .app-container { padding: 14px 12px; gap: 14px; }
+  .navbar { padding: 0 12px; height: 60px; gap: 8px; }
+  .nav-logo-icon { width: 32px; height: 32px; font-size: 16px; }
+  .logo-title { font-size: 17px; }
+  .logo-subtitle { display: none; }
+  
+  .nav-center-pills {
+    overflow-x: auto; white-space: nowrap; max-width: calc(100vw - 150px);
+    -webkit-overflow-scrolling: touch; padding: 3px; scrollbar-width: none;
+  }
+  .nav-center-pills::-webkit-scrollbar { display: none; }
+  .nav-pill { padding: 5px 12px; font-size: 12px; }
+  .nav-user-chip-btn { padding: 4px 10px 4px 5px; font-size: 12px; }
+  .user-chip-name { max-width: 65px; }
+
+  /* Hero Banner Mobile */
+  .hero-banner { grid-template-columns: 1fr; padding: 22px 18px; border-radius: 20px; gap: 16px; }
+  .hero-title { font-size: 26px; letter-spacing: -0.5px; }
+  .hero-subtitle { font-size: 14px; }
+  .hero-desc { font-size: 13px; margin-bottom: 16px; }
+  .hero-visual-card { display: none; }
+
+  /* Tool Workspace Split Mobile */
+  .tool-workspace-split { grid-template-columns: 1fr; gap: 16px; margin-top: 14px; }
+  .tool-hero-banner { grid-template-columns: 1fr; padding: 20px 18px; border-radius: 20px; gap: 14px; }
+  .tool-hero-header { gap: 10px; }
+  .tool-hero-icon { width: 44px; height: 44px; font-size: 22px; border-radius: 12px; }
+  .tool-hero-title { font-size: 22px; }
+  .tool-hero-desc { font-size: 12.5px; }
+  .prototype-dropzone { padding: 32px 16px; border-radius: 16px; }
+  .cloud-upload-circle { width: 52px; height: 52px; font-size: 24px; margin-bottom: 12px; }
+  .preview-grid-2col { grid-template-columns: 1fr; gap: 12px; }
+  .preview-img-wrap { height: 200px; }
+  .presets-grid-cards { grid-template-columns: repeat(2, 1fr); }
+
+  /* Mobile Touch Targets & Buttons */
+  .btn-lg { padding: 12px 20px; font-size: 14px; min-height: 44px; }
+  .form-input, select.form-input { min-height: 44px; font-size: 14px; }
+
+  /* Modal Mobile Layout */
+  .modal-card { padding: 24px 18px; border-radius: 20px; width: 94%; max-width: 100%; }
+  .modal-card.auth-modal-split { grid-template-columns: 1fr; max-width: 100%; border-radius: 20px; }
+  .auth-modal-left { display: none; }
+  .auth-modal-right { padding: 24px 18px; }
+}
+
 @media (max-width: 480px) {
   .category-grid-5 { grid-template-columns: 1fr !important; }
   .presets-grid-cards { grid-template-columns: 1fr; }
+  .popular-tools-grid { grid-template-columns: 1fr; }
+  .metrics-bar { grid-template-columns: 1fr 1fr; }
+  .nav-center-pills { max-width: calc(100vw - 110px); }
 }
+
 
