@@ -16,10 +16,13 @@
 <nav class="navbar">
   <a href="index.html" class="nav-logo">
     <div class="nav-logo-icon">🛠️</div>
-    Tool<span>Hub</span>
+    <div class="logo-text-wrap">
+      <div class="logo-title">Tool <span>Hub 2.0</span></div>
+      <div class="logo-subtitle">All-in-One Media Toolkit</div>
+    </div>
   </a>
   <div class="nav-right">
-    <button class="btn btn-icon btn-secondary" data-theme-toggle onclick="Theme.toggle()" title="Toggle theme">☀️</button>
+    <button class="nav-circle-btn" data-theme-toggle onclick="Theme.toggle()" title="Toggle Theme">☀️</button>
   </div>
 </nav>
 
@@ -29,7 +32,7 @@
     <div style="text-align:center;margin-bottom:28px;">
       <div class="nav-logo" style="justify-content:center;margin-bottom:18px;font-size:22px;">
         <div class="nav-logo-icon" style="width:42px;height:42px;font-size:20px;">🛠️</div>
-        Tool<span>Hub</span>
+        <div class="logo-title">Tool <span>Hub 2.0</span></div>
       </div>
       <p style="color:var(--muted);font-size:14px;">Free tools for everyone. Create an account to get started.</p>
     </div>
@@ -52,6 +55,7 @@
             <label class="form-label" for="login-email">Email address</label>
             <input class="form-input" type="email" id="login-email" name="email"
               autocomplete="email" placeholder="you@example.com" required>
+            <div id="login-email-fb" style="font-size:11px;margin-top:4px;display:none;font-weight:600;"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="login-password">Password</label>
@@ -86,6 +90,7 @@
             <label class="form-label" for="reg-email">Email address</label>
             <input class="form-input" type="email" id="reg-email" name="email"
               autocomplete="email" placeholder="you@example.com" required>
+            <div id="reg-email-fb" style="font-size:11px;margin-top:4px;display:none;font-weight:600;"></div>
           </div>
           <div class="form-group">
             <label class="form-label" for="reg-password">Password</label>
@@ -223,6 +228,34 @@ document.getElementById('register-form').addEventListener('submit', async e => {
 document.querySelectorAll('.form-input').forEach(el => {
   el.addEventListener('input', () => { document.getElementById('form-error').hidden = true; });
 });
+
+// Live Email Validation for auth.html
+function bindEmailValidation(inputId, feedbackId) {
+  const el = document.getElementById(inputId);
+  const fb = document.getElementById(feedbackId);
+  if (!el || !fb) return;
+  el.addEventListener('input', () => {
+    const val = el.value.trim();
+    if (!val) {
+      fb.style.display = 'none';
+      el.style.borderColor = '';
+      return;
+    }
+    const res = Auth.validateEmail(val);
+    fb.style.display = 'block';
+    if (res.valid) {
+      fb.style.color = 'var(--green, #10b981)';
+      fb.innerHTML = '✓ Valid email address format';
+      el.style.borderColor = 'var(--green, #10b981)';
+    } else {
+      fb.style.color = '#ef4444';
+      fb.innerHTML = '⚠️ ' + res.reason;
+      el.style.borderColor = '#ef4444';
+    }
+  });
+}
+bindEmailValidation('login-email', 'login-email-fb');
+bindEmailValidation('reg-email', 'reg-email-fb');
 
 let toastTimer;
 function showToast(msg) {

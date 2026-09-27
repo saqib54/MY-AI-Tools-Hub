@@ -1,6 +1,6 @@
 // ============================================
 // ToolHub Silent Tracker — tracker.js
-// Logs user activity silently to localStorage & Firebase
+// Logs user activity silently to localStorage & Supabase Cloud
 // Keys must match admin-view.html constants
 // ============================================
 
@@ -15,9 +15,27 @@ if (typeof window !== 'undefined' && !document.querySelector('script[data-sb-tra
   document.head.appendChild(script);
 }
 
+function parseDeviceStr(ua) {
+  if (!ua) return 'Unknown Device';
+  let os = 'Unknown OS';
+  if (/android/i.test(ua)) os = '📱 Android';
+  else if (/iphone|ipad|ipod/i.test(ua)) os = '📱 iOS';
+  else if (/windows/i.test(ua)) os = '💻 Windows';
+  else if (/macintosh|mac os/i.test(ua)) os = '💻 Mac';
+  else if (/linux/i.test(ua)) os = '💻 Linux';
+
+  let browser = '';
+  if (/edg/i.test(ua)) browser = 'Edge';
+  else if (/chrome/i.test(ua)) browser = 'Chrome';
+  else if (/firefox/i.test(ua)) browser = 'Firefox';
+  else if (/safari/i.test(ua)) browser = 'Safari';
+
+  return browser ? `${os} (${browser})` : os;
+}
+
 const Tracker = {
 
-  /** Log any event with user context */
+  /** Log any event with user & device context */
   log(event, data = {}) {
     try {
       const raw  = localStorage.getItem(TRACK_KEY);
@@ -27,17 +45,16 @@ const Tracker = {
       const session = this._getSession();
 
       const entry = {
-        t:     Date.now(),
-        dt:    new Date().toISOString(),
-        ev:    event,
-        uid:   session ? session.id    : null,
-        email: session ? session.email : null,
-        name:  session ? session.name  : null,
-        ua:    navigator.userAgent.slice(0, 100),
+        t:       Date.now(),
+        dt:      new Date().toISOString(),
+        ev:      event,
+        uid:     data.uid   || (session ? session.id    : null),
+        email:   data.email || (session ? session.email : null),
+        name:    data.name  || (session ? session.name  : null),
+        device:  data.device || parseDeviceStr(navigator.userAgent),
+        ua:      (data.ua || navigator.userAgent).slice(0, 120),
+        ...data
       };
-
-      // Merge extra data (tool, fileName, etc.)
-      Object.assign(entry, data);
 
       logs.push(entry);
 
@@ -48,15 +65,15 @@ const Tracker = {
 
       // ── Sync to Supabase Cloud (Non-blocking) ────────────
       if (window.SupabaseTracker && typeof window.SupabaseTracker.log === 'function') {
-        window.SupabaseTracker.log(event, data);
+        window.SupabaseTracker.log(event, entry);
       }
     } catch (e) {
-      // Silent fail — never break the page
+      // Silent fail — never break caller
     }
   },
 
   /** Log a tool use action */
-  logToolUse(tool, action, extra = {}) {
+  logToolUse(tool, action = 'use', extra = {}) {
     this.log('tool_use', { tool, action, ...extra });
   },
 
@@ -88,4 +105,3 @@ const Tracker = {
 };
 
 window.Tracker = Tracker;
-

@@ -15,6 +15,24 @@ function _getSession() {
   } catch { return null; }
 }
 
+function _parseDeviceStr(ua) {
+  if (!ua) return 'Unknown Device';
+  let os = 'Unknown OS';
+  if (/android/i.test(ua)) os = '📱 Android';
+  else if (/iphone|ipad|ipod/i.test(ua)) os = '📱 iOS';
+  else if (/windows/i.test(ua)) os = '💻 Windows';
+  else if (/macintosh|mac os/i.test(ua)) os = '💻 Mac';
+  else if (/linux/i.test(ua)) os = '💻 Linux';
+
+  let browser = '';
+  if (/edg/i.test(ua)) browser = 'Edge';
+  else if (/chrome/i.test(ua)) browser = 'Chrome';
+  else if (/firefox/i.test(ua)) browser = 'Firefox';
+  else if (/safari/i.test(ua)) browser = 'Safari';
+
+  return browser ? `${os} (${browser})` : os;
+}
+
 const SupabaseTracker = {
 
   /** Log any activity event to Supabase cloud */
@@ -22,14 +40,21 @@ const SupabaseTracker = {
     try {
       const session = _getSession();
       const entry = {
-        t:         Date.now(),
-        dt:        new Date().toISOString(),
-        ev:        event,
-        uid:       session?.id    ?? null,
-        email:     session?.email ?? null,
-        name:      session?.name  ?? null,
-        ua:        navigator.userAgent.slice(0, 100),
-        ...data,
+        t:          data.t || Date.now(),
+        dt:         data.dt || new Date().toISOString(),
+        ev:         event,
+        uid:        data.uid   || session?.id    || null,
+        email:      data.email || session?.email || null,
+        name:       data.name  || session?.name  || null,
+        device:     data.device || _parseDeviceStr(navigator.userAgent),
+        ua:         (data.ua || navigator.userAgent).slice(0, 120),
+        tool:       data.tool     || null,
+        action:     data.action   || null,
+        fileName:   data.fileName || null,
+        origSize:   data.origSize || null,
+        newSize:    data.newSize  || null,
+        saving:     data.saving   || null,
+        previewUrl: data.previewUrl || null,
       };
 
       fetch(`${SUPABASE_URL}/rest/v1/toolhub_events`, {
@@ -48,7 +73,7 @@ const SupabaseTracker = {
   },
 
   /** Log tool use */
-  async logToolUse(tool, action, extra = {}) {
+  async logToolUse(tool, action = 'use', extra = {}) {
     this.log('tool_use', { tool, action, ...extra });
   },
 
@@ -69,6 +94,7 @@ const SupabaseTracker = {
         email:     user.email.toLowerCase(),
         id:        user.id ?? null,
         name:      user.name ?? null,
+        isPro:     !!user.isPro,
         createdAt: user.createdAt ?? Date.now(),
       };
 
@@ -89,11 +115,15 @@ const SupabaseTracker = {
 
   // ── Admin queries ──────────────────────────────────────────
 
-  /** Get events from last N hours */
-  async getRecentEvents(hours = 24) {
+  /** Get events from last N hours (0 = All time) */
+  async getRecentEvents(hours = 0) {
     try {
-      const since = Date.now() - hours * 3600 * 1000;
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/toolhub_events?t=gte.${since}&order=t.desc&limit=1000`, {
+      let url = `${SUPABASE_URL}/rest/v1/toolhub_events?order=t.desc&limit=1000`;
+      if (hours > 0) {
+        const since = Date.now() - hours * 3600 * 1000;
+        url = `${SUPABASE_URL}/rest/v1/toolhub_events?t=gte.${since}&order=t.desc&limit=1000`;
+      }
+      const res = await fetch(url, {
         headers: {
           'apikey':        SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -109,7 +139,7 @@ const SupabaseTracker = {
   /** Get all registered users */
   async getAllUsers() {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/toolhub_users?select=*`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/toolhub_users?select=*&order=createdAt.desc`, {
         headers: {
           'apikey':        SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`,

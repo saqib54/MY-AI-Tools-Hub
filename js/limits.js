@@ -29,6 +29,9 @@ const Limits = {
 
   /** Get usage status for a tool */
   getStatus(toolName) {
+    if (window.Auth && Auth.isPro()) {
+      return { allowed: true, used: 0, remaining: '∞', resetAt: null, isPro: true };
+    }
     const store = this._getStore();
     const uid = this._userKey();
     const key = uid + ':' + toolName;
@@ -51,6 +54,9 @@ const Limits = {
 
   /** Consume one use. Returns { ok, remaining, resetAt } */
   consume(toolName) {
+    if (window.Auth && Auth.isPro()) {
+      return { ok: true, remaining: '∞', resetAt: null, isPro: true };
+    }
     const status = this.getStatus(toolName);
     if (!status.allowed) {
       return { ok: false, remaining: 0, resetAt: status.resetAt };
@@ -90,7 +96,17 @@ const Limits = {
     badge.className = 'usage-badge';
     badge.id = 'usage-badge';
 
-    if (status.allowed) {
+    if (status.isPro) {
+      badge.innerHTML = `
+        <div class="ub-label" style="color:var(--yellow, #f59e0b);">
+          <span>⚡ PRO Plan</span>
+          <strong style="color:var(--green, #22c55e);">Unlimited Uses</strong>
+        </div>
+        <div class="ub-bar">
+          <div class="ub-fill" style="width:100%;background:linear-gradient(90deg, #f59e0b, #22c55e)"></div>
+        </div>
+      `;
+    } else if (status.allowed) {
       const pct = (status.remaining / DAILY_LIMIT) * 100;
       const color = status.remaining <= 1 ? '#ef4444' : status.remaining <= 2 ? '#f59e0b' : '#22c55e';
       badge.innerHTML = `
@@ -112,7 +128,7 @@ const Limits = {
         <div class="ub-bar">
           <div class="ub-fill" style="width:100%;background:#ef4444;opacity:0.4"></div>
         </div>
-        <div class="ub-note">You've used all 5 free uses today. Come back in ${cd}!</div>
+        <div class="ub-note">You've used all 5 free uses today. Upgrade to PRO via WhatsApp!</div>
       `;
     }
 

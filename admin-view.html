@@ -9,7 +9,7 @@
   <script src="js/theme.js"></script>
   <style>
     /* ── Extra dashboard styles ── */
-    .badge-ev     { display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap; }
+    .badge-ev     { display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap; }
     .badge-register    { background:rgba(34,197,94,0.15); color:#4ade80; }
     .badge-login       { background:rgba(59,130,246,0.15);color:#60a5fa; }
     .badge-owner_login { background:rgba(251,191,36,0.15);color:#fbbf24; }
@@ -48,7 +48,7 @@
   <div class="gate-card">
     <div class="gate-icon">📊</div>
     <h1 class="gate-title">ToolHub Dashboard</h1>
-    <p class="gate-sub">Sign in with your account to continue</p>
+    <p class="gate-sub">Sign in with your admin account to continue</p>
 
     <div class="gate-err" id="gate-err">⚠️ Incorrect email or password.</div>
 
@@ -79,7 +79,7 @@
       <div class="nav-logo-icon">🛠️</div>
       Tool<span>Hub</span>
     </a>
-    <span style="font-size:12px;background:var(--blue-glow);border:1px solid rgba(59,130,246,.25);color:var(--accent);padding:4px 12px;border-radius:6px;font-weight:600;">📊 Dashboard</span>
+    <span style="font-size:12px;background:var(--blue-glow);border:1px solid rgba(59,130,246,.25);color:var(--accent);padding:4px 12px;border-radius:6px;font-weight:600;">📊 Admin Dashboard</span>
     <div class="nav-right">
       <button class="btn btn-icon btn-secondary" data-theme-toggle onclick="Theme.toggle()">☀️</button>
       <span id="nav-name" style="font-size:13px;color:var(--muted);"></span>
@@ -91,10 +91,19 @@
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
       <div>
-        <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px;">📊 ToolHub Dashboard</h1>
+        <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.5px;">📊 ToolHub User Activity & Usage Dashboard</h1>
         <p id="dash-sub" style="color:var(--muted);font-size:13px;margin-top:4px;"></p>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <select id="time-filter" class="form-input" style="width:auto;padding:8px 12px;font-size:13px;" onchange="refresh()">
+          <option value="0" selected>All Time (Full History)</option>
+          <option value="24">Last 24 Hours</option>
+          <option value="168">Last 7 Days</option>
+          <option value="720">Last 30 Days</option>
+        </select>
+        <label style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--muted);cursor:pointer;background:var(--card);padding:8px 12px;border-radius:8px;border:1px solid var(--border);">
+          <input type="checkbox" id="auto-refresh-check" onchange="toggleAutoRefresh(this.checked)"> ⚡ Live Auto-Refresh (10s)
+        </label>
         <button class="btn btn-secondary" onclick="refresh()">🔄 Refresh</button>
         <button class="btn btn-secondary" onclick="exportCSV()">📥 Export CSV</button>
       </div>
@@ -105,18 +114,28 @@
 
     <!-- Tabs -->
     <div class="tab-bar">
-      <button class="tab-btn active" id="tab-btn-logs"  onclick="showTab('logs')">📋 Activity Logs</button>
-      <button class="tab-btn"        id="tab-btn-users" onclick="showTab('users')">👥 Users</button>
-      <button class="tab-btn"        id="tab-btn-usage" onclick="showTab('usage')">📊 Tool Usage</button>
+      <button class="tab-btn active" id="tab-btn-logs"  onclick="showTab('logs')">📋 Activity Logs (Users & Tools)</button>
+      <button class="tab-btn"        id="tab-btn-users" onclick="showTab('users')">👥 Registered Users</button>
+      <button class="tab-btn"        id="tab-btn-usage" onclick="showTab('usage')">📊 Tool Usage Stats</button>
     </div>
 
     <!-- Logs -->
     <div class="tab-content active" id="tab-logs">
       <input class="search-bar" id="log-search" type="text"
-        placeholder="🔍 Search by name, email, tool…" oninput="renderLogs()">
+        placeholder="🔍 Search by user name, email, tool used (e.g. image-enhancer), device..." oninput="renderLogs()">
       <div class="data-table-wrap">
         <table class="data-table">
-          <thead><tr><th>Time</th><th>Event</th><th>Name</th><th>Email</th><th>Detail</th><th>Preview Image</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Event</th>
+              <th>User Name</th>
+              <th>User Email</th>
+              <th>Tool / Action Detail</th>
+              <th>Device & Browser</th>
+              <th>Preview</th>
+            </tr>
+          </thead>
           <tbody id="logs-tbody"></tbody>
         </table>
       </div>
@@ -125,9 +144,15 @@
 
     <!-- Users -->
     <div class="tab-content" id="tab-users">
+      <div style="margin-bottom:14px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">
+          💬 WhatsApp Contact: <a href="https://wa.me/92329289993" target="_blank" style="color:#22c55e;font-weight:800;text-decoration:none;">+92 329 2899993 💬</a>
+        </div>
+        <div style="font-size:12px;color:var(--muted);">Click ⚡ Grant Pro to allow unlimited tool uses for any registered user.</div>
+      </div>
       <div class="data-table-wrap">
         <table class="data-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Registered</th><th>ID</th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Registered Date</th><th>Plan Status</th><th>Actions</th></tr></thead>
           <tbody id="users-tbody"></tbody>
         </table>
       </div>
@@ -136,13 +161,13 @@
 
     <!-- Usage -->
     <div class="tab-content" id="tab-usage">
-      <div id="usage-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;"></div>
+      <div id="usage-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;"></div>
     </div>
 
     <!-- Danger -->
     <div class="danger-zone">
       <h4>⚠️ Danger Zone</h4>
-      <button class="btn btn-red" onclick="clearLogs()">🗑️ Clear All Logs</button>
+      <button class="btn btn-red" onclick="clearLogs()">🗑️ Clear Local Logs Cache</button>
     </div>
   </div>
 </div>
@@ -164,13 +189,13 @@
 
 <script>
 // ═══════════════════════════════════════════════
-//  OWNER CREDENTIALS — change only here
+//  OWNER CREDENTIALS
 // ═══════════════════════════════════════════════
 const OWNER_EMAIL = 'msaqibali433@gmail.com';
 const OWNER_PASS  = 'Saqib@23';
 const OWNER_NAME  = 'Saqib Ali';
 
-// ── localStorage keys (must match auth.js / tracker.js) ──
+// ── localStorage keys ──
 const KEY_USERS = '_th_u';
 const KEY_LOGS  = '_th_evts';
 const KEY_GATE  = '_th_gv';
@@ -178,6 +203,7 @@ const KEY_GATE  = '_th_gv';
 // In-memory cache for cloud data
 let _cloudLogs  = [];
 let _cloudUsers = [];
+let _autoRefreshInterval = null;
 window._dashboardOpen = false;
 
 // ══════════════════════════════════════════════
@@ -212,17 +238,28 @@ function showDashboard() {
   document.getElementById('app').hidden  = false;
   document.getElementById('nav-name').textContent = OWNER_NAME;
   document.getElementById('dash-sub').textContent =
-    'Welcome, ' + OWNER_NAME + ' · ⚡ Loading Supabase cloud data…';
+    'Welcome, ' + OWNER_NAME + ' · ⚡ Syncing cloud activity logs…';
   refresh();
 }
 
 function signOut() {
   sessionStorage.removeItem(KEY_GATE);
   window._dashboardOpen = false;
+  if (_autoRefreshInterval) clearInterval(_autoRefreshInterval);
   document.getElementById('gate').hidden = false;
   document.getElementById('app').hidden  = true;
   document.getElementById('g-email').value = '';
   document.getElementById('g-pass').value  = '';
+}
+
+function toggleAutoRefresh(enable) {
+  if (_autoRefreshInterval) clearInterval(_autoRefreshInterval);
+  if (enable) {
+    _autoRefreshInterval = setInterval(() => refresh(), 10000);
+    toast('⚡ Live 10s auto-refresh enabled!');
+  } else {
+    toast('Auto-refresh paused.');
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -232,25 +269,27 @@ async function fetchCloudData() {
   if (!window.SupabaseTracker) return;
 
   try {
+    const hours = parseInt(document.getElementById('time-filter').value) || 0;
     const [events, users] = await Promise.all([
-      SupabaseTracker.getRecentEvents(24),
+      SupabaseTracker.getRecentEvents(hours),
       SupabaseTracker.getAllUsers(),
     ]);
 
     _cloudLogs  = events || [];
     _cloudUsers = users  || [];
 
+    const timeLabel = hours === 0 ? 'All Time' : `Last ${hours}h`;
     document.getElementById('dash-sub').textContent =
-      'Welcome, ' + OWNER_NAME + ' · ⚡ Supabase Cloud · Last 24 hrs · Updated ' + new Date().toLocaleTimeString();
+      'Welcome, ' + OWNER_NAME + ' · ⚡ Supabase Cloud · ' + timeLabel + ' · Updated ' + new Date().toLocaleTimeString();
 
   } catch (err) {
     console.warn('Supabase fetch error:', err);
     document.getElementById('dash-sub').textContent =
-      'Welcome, ' + OWNER_NAME + ' · ⚠️ Cloud error — showing local data only';
+      'Welcome, ' + OWNER_NAME + ' · ⚠️ Cloud error — showing local cache';
   }
 }
 
-// ── Merged data helpers (cloud + localStorage fallback) ──
+// ── Merged data helpers ──
 function getLogs() {
   const local = (() => {
     try { return JSON.parse(localStorage.getItem(KEY_LOGS) || '[]'); }
@@ -259,9 +298,13 @@ function getLogs() {
 
   if (_cloudLogs.length === 0) return local;
 
-  const cutoff = Date.now() - 24 * 3600 * 1000;
-  const oldLocal = local.filter(l => (l.t || 0) < cutoff);
-  return [..._cloudLogs, ...oldLocal];
+  const hours = parseInt(document.getElementById('time-filter')?.value || '0');
+  if (hours > 0) {
+    const cutoff = Date.now() - hours * 3600 * 1000;
+    return _cloudLogs.filter(l => (l.t || 0) >= cutoff);
+  }
+
+  return _cloudLogs;
 }
 
 function getUsers() {
@@ -275,7 +318,19 @@ function getUsers() {
 
   const cloudEmails = new Set(_cloudUsers.map(u => u.email?.toLowerCase()));
   const localOnly   = localArr.filter(u => !cloudEmails.has((u.email||'').toLowerCase()));
-  return [..._cloudUsers, ...localOnly];
+  
+  const merged = [..._cloudUsers, ...localOnly].map(u => {
+    const em = (u.email||'').toLowerCase();
+    if (localObj[em]) {
+      return { ...u, ...localObj[em] };
+    }
+    if (em === OWNER_EMAIL.toLowerCase()) {
+      return { ...u, isPro: true, isOwner: true };
+    }
+    return u;
+  });
+
+  return merged;
 }
 
 // ══════════════════════════════════════════════
@@ -292,11 +347,7 @@ function showTab(name) {
 //  REFRESH ALL
 // ══════════════════════════════════════════════
 async function refresh() {
-  document.getElementById('stats-row').innerHTML =
-    '<p style="color:var(--muted);padding:12px;">⏳ Loading cloud data…</p>';
-
   await fetchCloudData();
-
   renderStats();
   renderLogs();
   renderUsers();
@@ -309,21 +360,39 @@ async function refresh() {
 function renderStats() {
   const logs      = getLogs();
   const users     = getUsers();
-  const todayStr  = new Date().toDateString();
-  const todayEvts = logs.filter(l => new Date(l.t).toDateString() === todayStr);
   const downloads = logs.filter(l => l.ev === 'download');
+  const toolUses  = logs.filter(l => l.ev === 'tool_use');
+  const proCount  = users.filter(u => u.isPro || u.isOwner || (u.email||'').toLowerCase() === OWNER_EMAIL.toLowerCase()).length;
 
   document.getElementById('stats-row').innerHTML = `
     <div class="admin-stat"><div class="val">${users.length}</div><div class="lbl">Registered Users</div></div>
-    <div class="admin-stat"><div class="val">${logs.length}</div><div class="lbl">Events (24 hrs)</div></div>
-    <div class="admin-stat"><div class="val">${todayEvts.length}</div><div class="lbl">Events Today</div></div>
-    <div class="admin-stat"><div class="val">${downloads.length}</div><div class="lbl">Downloads</div></div>
+    <div class="admin-stat"><div class="val" style="color:var(--yellow, #f59e0b);">${proCount}</div><div class="lbl">PRO Unlimited Users</div></div>
+    <div class="admin-stat"><div class="val" style="color:var(--blue);">${toolUses.length}</div><div class="lbl">Tool Executions</div></div>
+    <div class="admin-stat"><div class="val" style="color:var(--green);">${downloads.length}</div><div class="lbl">File Downloads</div></div>
   `;
 }
 
 // ══════════════════════════════════════════════
 //  LOGS TABLE
 // ══════════════════════════════════════════════
+function parseDeviceStr(ua) {
+  if (!ua) return '—';
+  let os = '';
+  if (/android/i.test(ua)) os = '📱 Android';
+  else if (/iphone|ipad|ipod/i.test(ua)) os = '📱 iOS';
+  else if (/windows/i.test(ua)) os = '💻 Windows';
+  else if (/macintosh|mac os/i.test(ua)) os = '💻 Mac';
+  else if (/linux/i.test(ua)) os = '💻 Linux';
+
+  let browser = '';
+  if (/edg/i.test(ua)) browser = 'Edge';
+  else if (/chrome/i.test(ua)) browser = 'Chrome';
+  else if (/firefox/i.test(ua)) browser = 'Firefox';
+  else if (/safari/i.test(ua)) browser = 'Safari';
+
+  return browser ? `${os} (${browser})` : (os || ua.slice(0,25));
+}
+
 function renderLogs() {
   const allLogs = [...getLogs()].sort((a, b) => (b.t||0) - (a.t||0));
   const q = (document.getElementById('log-search').value || '').trim().toLowerCase();
@@ -333,28 +402,41 @@ function renderLogs() {
         (l.name ||'').toLowerCase().includes(q) ||
         (l.ev   ||'').toLowerCase().includes(q) ||
         (l.tool ||'').toLowerCase().includes(q) ||
+        (l.device||'').toLowerCase().includes(q) ||
         (l.fileName||'').toLowerCase().includes(q))
     : allLogs;
 
   const shown = rows.slice(0, 500);
   document.getElementById('logs-tbody').innerHTML = shown.length
-    ? shown.map(l => `
-        <tr>
-          <td style="white-space:nowrap;font-size:11px;color:var(--muted);">${fmtDate(l.t)}</td>
-          <td><span class="badge-ev badge-${(l.ev||'').replace(/[^a-z_]/g,'')}">${l.ev||'—'}</span></td>
-          <td style="font-size:13px;font-weight:500;">${esc(l.name||'—')}</td>
-          <td style="font-size:12px;color:var(--muted);">${esc(l.email||'—')}</td>
-          <td style="font-size:12px;color:var(--muted);">${esc(detail(l))}</td>
-          <td>
-            ${l.previewUrl
-              ? `<img src="${l.previewUrl}" style="height:36px;max-width:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;transition:transform .2s;" onclick="openImageModal('${esc(l.previewUrl)}','${esc(l.fileName||'Processed Image')}')" title="Click to view full preview" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='none'" />`
-              : '<span style="color:var(--muted);font-size:11px;">—</span>'}
-          </td>
-        </tr>`).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted);">No events found</td></tr>';
+    ? shown.map(l => {
+        const evBadge = l.ev === 'login' ? '<span class="badge-ev badge-login">🔵 LOGIN</span>'
+          : l.ev === 'register' ? '<span class="badge-ev badge-register">🟢 REGISTER</span>'
+          : l.ev === 'tool_use' ? '<span class="badge-ev badge-tool_use">🟣 TOOL USE</span>'
+          : l.ev === 'download' ? '<span class="badge-ev badge-download">🟢 DOWNLOAD</span>'
+          : `<span class="badge-ev badge-page_view">${esc(l.ev || 'EVENT')}</span>`;
+
+        const deviceStr = l.device || parseDeviceStr(l.ua);
+        const waLink = l.email ? `<a href="https://wa.me/92329289993?text=${encodeURIComponent('Hi, regarding activity on ToolHub by ' + l.email)}" target="_blank" style="color:#22c55e;text-decoration:none;margin-left:4px;" title="Chat on WhatsApp">💬</a>` : '';
+
+        return `
+          <tr>
+            <td style="white-space:nowrap;font-size:11px;color:var(--muted);">${fmtDate(l.t || l.created_at)}</td>
+            <td>${evBadge}</td>
+            <td style="font-size:13px;font-weight:600;">${esc(l.name || 'User')}</td>
+            <td style="font-size:12px;color:var(--accent);">${esc(l.email || '—')} ${waLink}</td>
+            <td style="font-size:12px;">${esc(detail(l))}</td>
+            <td style="font-size:12px;color:var(--muted);">${esc(deviceStr)}</td>
+            <td>
+              ${l.previewUrl
+                ? `<img src="${l.previewUrl}" style="height:36px;max-width:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;" onclick="openImageModal('${esc(l.previewUrl)}','${esc(l.fileName||'Preview')}')" title="Click to view full preview" />`
+                : '<span style="color:var(--muted);font-size:11px;">—</span>'}
+            </td>
+          </tr>`;
+      }).join('')
+    : '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">No activity logs found</td></tr>';
 
   document.getElementById('logs-count').textContent =
-    `Showing ${shown.length} of ${rows.length} · ⚡ Supabase Cloud (last 24h) + 📦 Local`;
+    `Showing ${shown.length} of ${rows.length} activity records · Supabase Cloud + Local Cache`;
 }
 
 function openImageModal(url, title) {
@@ -371,17 +453,60 @@ function closeImageModal() {
 // ══════════════════════════════════════════════
 //  USERS TABLE
 // ══════════════════════════════════════════════
+function toggleProUser(email) {
+  const usersObj = (() => {
+    try { return JSON.parse(localStorage.getItem(KEY_USERS) || '{}'); }
+    catch { return {}; }
+  })();
+
+  const em = (email || '').toLowerCase();
+  const existing = usersObj[em] || {};
+  const currentPro = !!(existing.isPro || existing.isOwner || em === OWNER_EMAIL.toLowerCase());
+  const newPro = !currentPro;
+
+  usersObj[em] = {
+    ...existing,
+    email: em,
+    name: existing.name || em.split('@')[0],
+    isPro: newPro,
+    createdAt: existing.createdAt || Date.now()
+  };
+
+  localStorage.setItem(KEY_USERS, JSON.stringify(usersObj));
+
+  if (window.SupabaseTracker) {
+    SupabaseTracker.saveUser(usersObj[em]);
+  }
+
+  toast(`✨ Plan updated for ${em}: ${newPro ? 'PRO Plan (Unlimited)' : 'FREE Plan'}`);
+  refresh();
+}
+
 function renderUsers() {
   const users = getUsers();
   document.getElementById('users-tbody').innerHTML = users.length
-    ? users.map(u => `
-        <tr>
-          <td style="font-weight:500;">${esc(u.name||'—')}</td>
-          <td style="color:var(--accent);">${esc(u.email||'—')}</td>
-          <td style="font-size:12px;color:var(--muted);">${fmtDate(u.createdAt)}</td>
-          <td style="font-size:11px;color:var(--muted2);font-family:monospace;">${u.id||'—'}</td>
-        </tr>`).join('')
-    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted);">No registered users yet</td></tr>';
+    ? users.map(u => {
+        const isPro = !!(u.isPro || u.isOwner || (u.email||'').toLowerCase() === OWNER_EMAIL.toLowerCase());
+        const planBadge = isPro
+          ? `<span style="background:rgba(245,158,11,0.15);color:#f59e0b;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:800;">⚡ PRO PLAN</span>`
+          : `<span style="background:rgba(100,116,139,0.15);color:var(--muted);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;">FREE</span>`;
+
+        const actionBtn = isPro
+          ? `<button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px;" onclick="toggleProUser('${esc(u.email)}')">Revoke Pro</button>`
+          : `<button class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 10px;background:#22c55e;border:none;" onclick="toggleProUser('${esc(u.email)}')">⚡ Grant Pro</button>`;
+
+        const waLink = u.email ? `<a href="https://wa.me/92329289993?text=${encodeURIComponent('Hello Saqib, regarding user account: ' + u.email)}" target="_blank" style="color:#22c55e;text-decoration:none;font-size:12px;margin-left:6px;" title="Chat on WhatsApp">💬</a>` : '';
+
+        return `
+          <tr>
+            <td style="font-weight:600;">${esc(u.name||'—')}</td>
+            <td style="color:var(--accent);">${esc(u.email||'—')} ${waLink}</td>
+            <td style="font-size:12px;color:var(--muted);">${fmtDate(u.createdAt)}</td>
+            <td>${planBadge}</td>
+            <td>${actionBtn}</td>
+          </tr>`;
+      }).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted);">No registered users yet</td></tr>';
 
   document.getElementById('users-count').textContent =
     `${users.length} registered user${users.length !== 1 ? 's' : ''}`;
@@ -426,7 +551,7 @@ function renderUsage() {
 //  CLEAR + EXPORT
 // ══════════════════════════════════════════════
 function clearLogs() {
-  if (!confirm('Clear local logs? (Cloud logs are kept for 24h automatically.)')) return;
+  if (!confirm('Clear local logs cache?')) return;
   localStorage.removeItem(KEY_LOGS);
   _cloudLogs = [];
   refresh();
@@ -436,10 +561,10 @@ function clearLogs() {
 function exportCSV() {
   const logs = getLogs();
   if (!logs.length) { toast('No logs to export.'); return; }
-  const hdr = ['Time','Event','Name','Email','Tool','FileName','UA'];
+  const hdr = ['Time','Event','Name','Email','Tool','FileName','Device','UA'];
   const rows = logs.map(l => [
-    new Date(l.t).toISOString(), l.ev||'', l.name||'', l.email||'',
-    l.tool||'', l.fileName||'', (l.ua||'').replace(/,/g,' ')
+    new Date(l.t || l.created_at).toISOString(), l.ev||'', l.name||'', l.email||'',
+    l.tool||'', l.fileName||'', l.device || parseDeviceStr(l.ua), (l.ua||'').replace(/,/g,' ')
   ]);
   const csv = [hdr, ...rows].map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
   const a = document.createElement('a');
@@ -453,30 +578,50 @@ function exportCSV() {
 //  UTILITIES
 // ══════════════════════════════════════════════
 function toolEmoji(t) {
-  return {'image-enhancer':'🖼️','image-compressor':'🗜️','pdf-compressor':'📄','image-to-pdf':'🔄'}[t]||'🛠️';
+  const map = {
+    'image-enhancer':'🖼️','image-compressor':'🗜️','image-resizer':'📐','image-converter':'🔄','image-cropper':'✂️',
+    'screenshot-cleaner':'📱','image-quality-analyzer':'🔍','background-remover':'🪄','color-palette-extractor':'🎨','id-photo-maker':'🪪',
+    'pdf-compressor':'📄','image-to-pdf':'🔄','pdf-to-image':'🖼️','pdf-merger':'🧩','pdf-splitter':'✂️','pdf-to-text':'📝','pdf-page-organizer':'🗂️','pdf-watermark':'💧','pdf-metadata-cleaner':'🧹',
+    'video-downloader':'📥','video-compressor':'🗜️','video-trimmer':'✂️','video-to-audio':'🎵','video-to-gif':'🎞️','thumbnail-maker':'🖼️','video-metadata-cleaner':'🧹',
+    'target-compressor':'🎯','document-scanner':'📄','privacy-redactor':'🔒','file-quality-analyzer':'🔍','metadata-cleaner':'🧹','smart-file-fixer':'🛠️'
+  };
+  return map[t] || '🛠️';
 }
+
 function toolLabel(t) {
-  return {'image-enhancer':'Image Enhancer','image-compressor':'Image Compressor','pdf-compressor':'PDF Compressor','image-to-pdf':'Image to PDF'}[t]||t;
+  const map = {
+    'image-enhancer':'Image Enhancer','image-compressor':'Image Compressor','image-resizer':'Image Resizer','image-converter':'Image Converter','image-cropper':'Image Cropper',
+    'screenshot-cleaner':'Screenshot Cleaner','image-quality-analyzer':'Image Quality Analyzer','background-remover':'Background Remover','color-palette-extractor':'Color Palette Extractor','id-photo-maker':'ID Photo Maker',
+    'pdf-compressor':'PDF Compressor','image-to-pdf':'Image → PDF','pdf-to-image':'PDF to Image','pdf-merger':'PDF Merger','pdf-splitter':'PDF Splitter','pdf-to-text':'PDF → Text','pdf-page-organizer':'PDF Page Organizer','pdf-watermark':'PDF Watermark','pdf-metadata-cleaner':'PDF Metadata Cleaner',
+    'video-downloader':'Video Downloader','video-compressor':'Video Compressor','video-trimmer':'Video Trimmer','video-to-audio':'Video → Audio','video-to-gif':'Video → GIF','thumbnail-maker':'Thumbnail Maker','video-metadata-cleaner':'Video Metadata Cleaner',
+    'target-compressor':'Target Size Compressor','document-scanner':'Document Scanner','privacy-redactor':'Privacy Redactor','file-quality-analyzer':'File Quality Analyzer','metadata-cleaner':'General Metadata Cleaner','smart-file-fixer':'Smart File Fixer'
+  };
+  return map[t] ? `${toolEmoji(t)} ${map[t]}` : t;
 }
+
 function detail(l) {
   const p = [];
-  if (l.tool)     p.push(l.tool);
-  if (l.fileName) p.push(l.fileName.slice(0,40));
+  if (l.tool)     p.push(toolLabel(l.tool));
+  if (l.fileName) p.push(l.fileName);
   if (l.action && !l.tool) p.push(l.action);
-  return p.join(' · ');
+  if (l.saving)   p.push(`Saved ${l.saving}%`);
+  return p.join(' · ') || '—';
 }
+
 function fmtDate(ts) {
   if (!ts) return '—';
   const d = new Date(ts);
   return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
+
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 let _tt;
 function toast(msg) {
   const t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg; t.classList.add('show');
   clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 3000);
 }
