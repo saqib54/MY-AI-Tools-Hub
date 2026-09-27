@@ -270,9 +270,9 @@ async function fetchCloudData() {
   if (!window.SupabaseTracker) return;
 
   try {
-    const hours = parseInt(document.getElementById('time-filter').value) || 0;
+    const hours = parseInt(document.getElementById('time-filter')?.value || '0');
     const [events, users] = await Promise.all([
-      SupabaseTracker.getRecentEvents(hours),
+      SupabaseTracker.getRecentEvents(0), // Always fetch full cloud log set
       SupabaseTracker.getAllUsers(),
     ]);
 
@@ -281,7 +281,7 @@ async function fetchCloudData() {
 
     const timeLabel = hours === 0 ? 'All Time' : `Last ${hours}h`;
     document.getElementById('dash-sub').textContent =
-      'Welcome, ' + OWNER_NAME + ' · ⚡ Supabase Cloud · ' + timeLabel + ' · Updated ' + new Date().toLocaleTimeString();
+      'Welcome, ' + OWNER_NAME + ' · ⚡ Supabase Cloud (' + _cloudLogs.length + ' events) · ' + timeLabel + ' · Updated ' + new Date().toLocaleTimeString();
 
   } catch (err) {
     console.warn('Supabase fetch error:', err);
@@ -305,7 +305,7 @@ function getLogTime(l) {
   return Date.now();
 }
 
-function getLogs() {
+function getLogs(applyFilter = true) {
   const local = (() => {
     try { return JSON.parse(localStorage.getItem(KEY_LOGS) || '[]'); }
     catch { return []; }
@@ -327,10 +327,12 @@ function getLogs() {
 
   const merged = Array.from(logMap.values());
 
-  const hours = parseInt(document.getElementById('time-filter')?.value || '0');
-  if (hours > 0) {
-    const cutoff = Date.now() - hours * 3600 * 1000;
-    return merged.filter(l => getLogTime(l) >= cutoff);
+  if (applyFilter) {
+    const hours = parseInt(document.getElementById('time-filter')?.value || '0');
+    if (hours > 0) {
+      const cutoff = Date.now() - hours * 3600 * 1000;
+      return merged.filter(l => getLogTime(l) >= cutoff);
+    }
   }
 
   return merged;
@@ -357,7 +359,8 @@ function getUsers() {
     }
   });
 
-  const logs = getLogs();
+  // Get ALL logs (unfiltered by time) to discover every registered user email
+  const logs = getLogs(false);
   logs.forEach(l => {
     if (l.email) {
       const em = l.email.toLowerCase();
