@@ -44,8 +44,8 @@
 
   <div class="nav-right">
     <button class="nav-circle-btn" data-theme-toggle onclick="Theme.toggle()" title="Toggle Theme">☀️</button>
-    <button class="nav-circle-btn nav-notif-btn" onclick="Common.showToast('🔔 Welcome to ToolHub 2.0! All tools process 100% locally in browser.')" title="Notifications">
-      🔔<span class="notif-dot"></span>
+    <button type="button" class="nav-hamburger" id="nav-sidebar-toggle-btn" aria-label="Toggle Navigation Sidebar" title="Toggle Navigation Menu">
+      <span class="ham-icon">☰</span> <span class="ham-text">Menu</span>
     </button>
     <div class="login-btn-group">
       <button class="btn btn-ghost btn-signin" onclick="Auth.openModal('login')">Sign In</button>

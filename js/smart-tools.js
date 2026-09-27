@@ -190,7 +190,8 @@ const SmartTools = {
             <a href="${URL.createObjectURL(blob)}" download="${Common.escapeHtml(file.name.replace(/\.[^.]+$/, ''))}-target.jpg" class="btn btn-green btn-full btn-lg" style="margin-top:12px;text-align:center;display:block;">⬇️ Download Compressed Image</a>
           `;
 
-          if (window.Tracker) Tracker.logToolUse('target-compressor', 'compress', { targetKb, resKb });
+          const previewUrl = Common.createThumbnail(img, 160);
+          if (window.Tracker) Tracker.logToolUse('target-compressor', 'compress', { fileName: file.name, origSize: file.size, newSize: blob.size, targetKb, resKb, previewUrl });
           Common.showToast('✅ Target size reached successfully!');
         }, 'image/jpeg', bestQ);
       };
