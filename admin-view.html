@@ -481,7 +481,7 @@ function renderLogs() {
             <td style="font-size:12px;color:var(--muted);">${esc(deviceStr)}</td>
             <td>
               ${l.previewUrl
-                ? `<img src="${l.previewUrl}" style="height:36px;max-width:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;" onclick="openImageModal('${esc(l.previewUrl)}','${esc(l.fileName||'Preview')}')" title="Click to view full preview" />`
+                ? `<img src="${l.previewUrl}" style="height:38px;max-width:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;transition:transform .15s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" onclick="openImageModal(this,'${esc(l.fileName||'Preview')}')" title="Click to view full preview" />`
                 : '<span style="color:var(--muted);font-size:11px;">—</span>'}
             </td>
           </tr>`;
@@ -492,9 +492,11 @@ function renderLogs() {
     `Showing ${shown.length} of ${rows.length} activity records · Supabase Cloud + Local Cache`;
 }
 
-function openImageModal(url, title) {
+function openImageModal(imgEl, title) {
+  const url = (typeof imgEl === 'string') ? imgEl : (imgEl ? imgEl.src : '');
+  if (!url) return;
   document.getElementById('img-modal-src').src = url;
-  document.getElementById('img-modal-title').textContent = title;
+  document.getElementById('img-modal-title').textContent = title || 'Preview Image';
   document.getElementById('img-modal-dl').href = url;
   document.getElementById('img-modal').style.display = 'flex';
 }

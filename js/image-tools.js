@@ -207,6 +207,18 @@ const ImageTools = {
         const ctx = origCanvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
         this.renderEnhancer();
+
+        try {
+          const previewUrl = Common.createThumbnail(origCanvas, 160);
+          if (window.Tracker) {
+            Tracker.logToolUse('image-enhancer', 'upload', {
+              fileName: file.name,
+              origSize: file.size,
+              previewUrl: previewUrl
+            });
+          }
+        } catch (err) {}
+
         Common.showToast('✅ Image loaded! Adjust sliders to enhance.');
       };
       img.src = e.target.result;
