@@ -121,37 +121,44 @@ const VideoTools = {
     };
 
     document.getElementById('vid-url-btn').onclick = async () => {
-      const url = document.getElementById('vid-url-input').value.trim();
-      if (!url) { Common.showToast('⚠️ Please paste a video or TikTok link first!'); return; }
+      const rawInput = document.getElementById('vid-url-input').value.trim();
+      if (!rawInput) { Common.showToast('⚠️ Please paste a TikTok, YouTube, or video link first!'); return; }
       if (!Common.checkAndConsume('video-downloader', document.getElementById('vdl-panel'))) return;
+
+      const urlMatch = rawInput.match(/https?:\/\/[^\s]+/i);
+      const url = urlMatch ? urlMatch[0] : rawInput;
 
       const btn = document.getElementById('vid-url-btn');
       const statusBox = document.getElementById('vdl-status-box');
       const resultActions = document.getElementById('vdl-result-actions');
-      const player = document.getElementById('vid-player');
+      const previewBox = document.getElementById('vid-import-preview');
 
       btn.disabled = true;
-      btn.textContent = '⏳ Extracting HD Video...';
+      btn.textContent = '⏳ Extracting Media Stream...';
       statusBox.style.display = 'block';
+      statusBox.className = 'settings-card';
+      statusBox.style.background = 'rgba(59,130,246,0.08)';
+      statusBox.style.borderColor = 'rgba(59,130,246,0.3)';
       statusBox.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--blue);font-weight:700;">
           <span class="spinner" style="display:inline-block;width:18px;height:18px;border:2px solid var(--blue);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;"></span>
-          Resolving TikTok / video media stream without watermark...
+          Resolving media link & fetching HD video stream...
         </div>
       `;
 
       try {
         let extracted = null;
 
-        // TikTok URL resolver (TikWM + Tiklydown fallback)
+        // 1. TIKTOK LINK RESOLVER
         if (/tiktok\.com/i.test(url)) {
           try {
             const res = await fetch('https://www.tikwm.com/api/?url=' + encodeURIComponent(url));
             const json = await res.json();
             if (json.code === 0 && json.data) {
               extracted = {
+                type: 'tiktok',
                 title: json.data.title || 'TikTok Video',
-                author: json.data.author ? (json.data.author.nickname || json.data.author.unique_id) : 'TikTok User',
+                author: json.data.author ? (json.data.author.nickname || json.data.author.unique_id) : 'TikTok Creator',
                 playUrl: json.data.play,
                 wmUrl: json.data.wmplay,
                 audioUrl: json.data.music,
@@ -159,89 +166,136 @@ const VideoTools = {
               };
             }
           } catch (e1) {
-            console.warn('TikWM API failed, trying Tiklydown...', e1);
-          }
-
-          if (!extracted) {
-            try {
-              const res2 = await fetch('https://api.tiklydown.eu.org/api/download?url=' + encodeURIComponent(url));
-              const json2 = await res2.json();
-              if (json2 && (json2.video || json2.url)) {
-                extracted = {
-                  title: json2.title || 'TikTok Video',
-                  author: json2.author ? json2.author.name : 'TikTok User',
-                  playUrl: json2.video || json2.url,
-                  audioUrl: json2.music || json2.audio
-                };
-              }
-            } catch (e2) {
-              console.warn('Tiklydown API failed:', e2);
-            }
+            console.warn('TikWM error:', e1);
           }
         }
 
-        // Direct video link or generic stream URL fallback
-        if (!extracted) {
+        // 2. YOUTUBE LINK RESOLVER
+        else if (/youtube\.com|youtu\.be/i.test(url)) {
+          const m = url.match(/(?:youtube\.com|youtu\.be)\/(?:watch\?v=|shorts\/|embed\/)?([a-zA-Z0-9_-]{11})/i);
+          const ytId = m ? m[1] : null;
+          if (ytId) {
+            extracted = {
+              type: 'youtube',
+              ytId: ytId,
+              title: `YouTube Video (${ytId})`,
+              author: 'YouTube',
+              embedUrl: `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1`,
+              playUrl: `https://www.youtube.com/watch?v=${ytId}`
+            };
+          }
+        }
+
+        // 3. INSTAGRAM LINK RESOLVER
+        else if (/instagram\.com/i.test(url)) {
           extracted = {
-            title: 'Extracted Video Stream',
-            author: 'Online Stream',
+            type: 'instagram',
+            title: 'Instagram Reel / Post',
+            author: 'Instagram',
             playUrl: url
           };
         }
 
-        if (extracted && extracted.playUrl) {
-          player.src = extracted.playUrl;
-          player.play().catch(() => {});
+        // 4. GENERIC / DIRECT MP4 VIDEO URL
+        if (!extracted) {
+          extracted = {
+            type: 'generic',
+            title: 'Direct Video Stream',
+            author: 'Online Media Stream',
+            playUrl: url
+          };
+        }
 
-          statusBox.className = 'settings-card';
+        // RENDER RESULT UI
+        if (extracted) {
           statusBox.style.background = 'rgba(16,185,129,0.08)';
           statusBox.style.borderColor = 'rgba(16,185,129,0.3)';
           statusBox.innerHTML = `
-            <div style="font-weight:800;color:var(--green);font-size:14px;margin-bottom:4px;">🎉 Video Successfully Extracted!</div>
+            <div style="font-weight:800;color:var(--green);font-size:14px;margin-bottom:4px;">🎉 Media Successfully Extracted!</div>
             <div style="font-size:12.5px;color:var(--text);line-height:1.4;">
               <strong>${Common.escapeHtml(extracted.title)}</strong><br>
-              <span style="color:var(--muted);font-size:11px;">Author: @${Common.escapeHtml(extracted.author)}</span>
+              <span style="color:var(--muted);font-size:11px;">Source: ${Common.escapeHtml(extracted.author)}</span>
             </div>
           `;
 
+          // If YouTube, render responsive YouTube Embed Player
+          if (extracted.type === 'youtube' && extracted.ytId) {
+            previewBox.innerHTML = `
+              <div class="canvas-container-box">
+                <iframe src="${extracted.embedUrl}" allow="autoplay; encrypted-media" allowfullscreen style="width:100%;height:320px;border-radius:12px;border:none;background:black;"></iframe>
+              </div>
+            `;
+          } else {
+            // Render native video player
+            previewBox.innerHTML = `
+              <div class="canvas-container-box">
+                <video id="vid-player" controls autoplay style="max-height:320px;width:100%;border-radius:12px;background:black;" src="${extracted.playUrl}"></video>
+              </div>
+            `;
+          }
+
           resultActions.style.display = 'flex';
-          resultActions.innerHTML = `
-            <button class="btn btn-green btn-full btn-lg" id="dl-hd-btn" style="padding:14px;font-size:15px;background:#10b981;">
-              ⬇️ Download HD MP4 (No Watermark)
-            </button>
-            ${extracted.audioUrl ? `
-              <button class="btn btn-purple btn-full" id="dl-mp3-btn" style="padding:12px;font-size:14px;">
-                🎵 Download MP3 Audio Track
+
+          if (extracted.type === 'tiktok') {
+            resultActions.innerHTML = `
+              <button class="btn btn-green btn-full btn-lg" id="dl-hd-btn" style="padding:14px;font-size:15px;background:#10b981;">
+                ⬇️ Download HD MP4 (No Watermark)
               </button>
-            ` : ''}
-            <button class="btn btn-secondary btn-full" onclick="navigator.clipboard.writeText('${Common.escapeHtml(extracted.playUrl)}'); Common.showToast('📋 Copied MP4 link to clipboard!');">
-              📋 Copy Direct MP4 Stream Link
-            </button>
-          `;
+              ${extracted.audioUrl ? `
+                <button class="btn btn-purple btn-full" id="dl-mp3-btn" style="padding:12px;font-size:14px;">
+                  🎵 Download MP3 Audio Track
+                </button>
+              ` : ''}
+              <button class="btn btn-secondary btn-full" onclick="navigator.clipboard.writeText('${Common.escapeHtml(extracted.playUrl)}'); Common.showToast('📋 Copied MP4 link to clipboard!');">
+                📋 Copy Direct MP4 Link
+              </button>
+            `;
 
-          // Bind download buttons
-          document.getElementById('dl-hd-btn').onclick = () => {
-            const fileName = `TikTok-${Date.now()}.mp4`;
-            this.triggerDirectDownload(extracted.playUrl, fileName);
-          };
+            document.getElementById('dl-hd-btn').onclick = () => {
+              this.triggerDirectDownload(extracted.playUrl, `TikTok-${Date.now()}.mp4`);
+            };
 
-          if (extracted.audioUrl && document.getElementById('dl-mp3-btn')) {
-            document.getElementById('dl-mp3-btn').onclick = () => {
-              const fileName = `TikTok-Audio-${Date.now()}.mp3`;
-              this.triggerDirectDownload(extracted.audioUrl, fileName);
+            if (extracted.audioUrl && document.getElementById('dl-mp3-btn')) {
+              document.getElementById('dl-mp3-btn').onclick = () => {
+                this.triggerDirectDownload(extracted.audioUrl, `TikTok-Audio-${Date.now()}.mp3`);
+              };
+            }
+          } else if (extracted.type === 'youtube') {
+            resultActions.innerHTML = `
+              <a href="https://loader.to/api/button/?url=${encodeURIComponent(extracted.playUrl)}&f=mp4" target="_blank" class="btn btn-green btn-full btn-lg" style="padding:14px;font-size:15px;background:#10b981;text-decoration:none;">
+                ⬇️ Download YouTube MP4 (HD)
+              </a>
+              <a href="https://loader.to/api/button/?url=${encodeURIComponent(extracted.playUrl)}&f=mp3" target="_blank" class="btn btn-purple btn-full" style="padding:12px;font-size:14px;text-decoration:none;">
+                🎵 Download MP3 Audio Track
+              </a>
+              <a href="${extracted.playUrl}" target="_blank" class="btn btn-secondary btn-full" style="text-decoration:none;">
+                📺 Watch on YouTube
+              </a>
+            `;
+          } else {
+            resultActions.innerHTML = `
+              <button class="btn btn-green btn-full btn-lg" id="dl-hd-btn" style="padding:14px;font-size:15px;background:#10b981;">
+                ⬇️ Download Video Stream (MP4)
+              </button>
+              <button class="btn btn-secondary btn-full" onclick="navigator.clipboard.writeText('${Common.escapeHtml(extracted.playUrl)}'); Common.showToast('📋 Copied link to clipboard!');">
+                📋 Copy Stream Link
+              </button>
+            `;
+            document.getElementById('dl-hd-btn').onclick = () => {
+              this.triggerDirectDownload(extracted.playUrl, `Video-${Date.now()}.mp4`);
             };
           }
 
-          Common.showToast('✅ Video extracted successfully!');
+          Common.showToast('✅ Video extracted & ready!');
         } else {
           statusBox.style.display = 'block';
           statusBox.innerHTML = `⚠️ Could not extract video stream. Please verify the URL and try again.`;
-          Common.showToast('⚠️ Could not extract video. Check URL format.');
+          Common.showToast('⚠️ Check URL format.');
         }
       } catch (err) {
         console.warn('Video import error:', err);
         statusBox.style.display = 'block';
-        statusBox.innerHTML = `⚠️ Error fetching video. Make sure link is public.`;
+        statusBox.innerHTML = `⚠️ Error fetching video link. Make sure link is valid and public.`;
         Common.showToast('Error importing video link.');
       } finally {
         btn.disabled = false;
