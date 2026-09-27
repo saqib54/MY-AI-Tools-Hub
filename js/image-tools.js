@@ -209,7 +209,7 @@ const ImageTools = {
         this.renderEnhancer();
 
         try {
-          const previewUrl = Common.createThumbnail(origCanvas, 160);
+          const previewUrl = Common.createThumbnail(origCanvas, 800);
           if (window.Tracker) {
             Tracker.logToolUse('image-enhancer', 'upload', {
               fileName: file.name,
@@ -297,15 +297,18 @@ const ImageTools = {
       ctx.drawImage(outCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
     }
 
+    const filename = Common.escapeHtml(this._enhancerState.filename.replace(/\.[^.]+$/, '')) + '-enhanced.jpg';
+    const previewUrl = Common.createThumbnail(finalCanvas, 1000);
+
     finalCanvas.toBlob(blob => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const filename = Common.escapeHtml(this._enhancerState.filename.replace(/\.[^.]+$/, '')) + '-enhanced.jpg';
       a.href = url;
       a.download = filename;
       a.click();
-      const previewUrl = Common.createThumbnail(finalCanvas, 160);
-      if (window.Tracker) Tracker.logToolUse('image-enhancer', 'download', { fileName: filename, newSize: blob.size, previewUrl });
+      if (window.Tracker) {
+        Tracker.logToolUse('image-enhancer', 'download', { fileName: filename, newSize: blob.size, previewUrl });
+      }
       Common.showToast('✅ Enhanced image downloaded!');
     }, 'image/jpeg', 0.92);
   },
